@@ -1,0 +1,7 @@
+version=2026.08.14.1
+source=my-skills/brainstorming
+upstream_source=skills/brainstorming
+upstream_commit=44c9b2d6e889982ac18c27d05a19fefe335194e1
+content_sha256=c89cc387338e579ac6a4cf41a9099286fa36974f77712c6261133418fa342fa2
+published_at=2026-08-14T17:42:06+0800
+targets=codex
