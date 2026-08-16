@@ -1,0 +1,15 @@
+{
+  "name": "my-superpowers",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "skills:list": "node scripts/skills.mjs list",
+    "skill:install": "node scripts/skills.mjs install",
+    "skill:check": "node scripts/skills.mjs check",
+    "skill:publish": "node scripts/skills.mjs publish",
+    "upstream:update": "git -C upstream/superpowers pull --ff-only"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "使用 Superpowers"
+  short_description: "克制地检查并建议当前最值得使用的 Skill"
+  default_prompt: "使用 $using-superpowers 检查当前任务是否值得建议一个 Skill。"
+
+policy:
+  allow_implicit_invocation: true

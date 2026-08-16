@@ -1,0 +1,8 @@
+version=2026.08.16.1
+source=my-skills/using-superpowers
+upstream_source=upstream/superpowers/skills/using-superpowers
+upstream_commit=b36e0829c6d0140e93cfef2ca599b1b07d4a7797
+content_sha256=f1458ff54cd4556b570a2a4cda05b9a35cb218fd73f8493fe6fbdfbe27180a88
+content_summary=克制式全局 Skill 路由器；仅在收益明确时建议，并保留用户调用决定权
+published_at=2026-08-16T22:29:53+0800
+targets=codex,claude-code

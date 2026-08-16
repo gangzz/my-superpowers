@@ -29,7 +29,7 @@ my-skills/decisions/<skill-name>/YYYY-MM-DD-<topic>.md
 
 ## 边界与约束
 
-- 上游原始 Skill 保留在 `skills/`，个人版本保留在 `my-skills/`。
+- 上游原始 Skill 保留在独立仓库 `upstream/superpowers/skills/`，个人版本保留在 `my-skills/`。
 - 不把个人定制提交给上游 Superpowers。
 - 不以安装整个 Plugin 为前提；后续按需把单个 Skill 加入 Codex 或 Claude Code。
 - 上游更新后，以本目录中的决策记录作为复核个人改动的依据，不机械覆盖本地版本。
