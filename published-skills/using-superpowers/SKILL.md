@@ -68,6 +68,18 @@ description: 在每个新用户请求或明显任务转折点静默检查已启�
 
 没有合适 Skill、收益不足以覆盖成本、依赖不可用，或普通处理已经足够时，保持安静并继续任务。
 
+## 平台适配（按需读取）
+
+不要在日常路由检查中读取平台参考文件。只有已经决定使用某个下游 Skill，而且该 Skill 确实涉及子 Agent、任务追踪、工作树、分支收尾或平台工具映射时，才读取当前运行环境对应的一个文件：
+
+- Codex：`references/codex-tools.md`
+- Gemini CLI：`references/gemini-tools.md`
+- Pi：`references/pi-tools.md`
+- Antigravity：`references/antigravity-tools.md`
+- Hermes Agent：`references/hermes-tools.md`
+
+平台参考与当前工具列表或更高优先级指令冲突时，以当前运行环境为准。不要为了读取参考文件而调用原本无需使用的下游 Skill。
+
 ## 优先级
 
 用户的直接要求以及适用的 `AGENTS.md`、`CLAUDE.md`、`GEMINI.md` 等项目指令优先于本 Skill。
