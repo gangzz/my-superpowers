@@ -1,0 +1,7 @@
+interface:
+  display_name: "结构化设计表达"
+  short_description: "用渐进图示、语义分层和少量必要文字清晰呈现复杂设计与分析"
+  default_prompt: "使用 $structured-design 将这个复杂设计整理为易读的全景图、细化图和必要说明。"
+
+policy:
+  allow_implicit_invocation: true

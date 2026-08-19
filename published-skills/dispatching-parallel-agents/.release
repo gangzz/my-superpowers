@@ -1,0 +1,8 @@
+version=2026.08.18.1
+source=my-skills/dispatching-parallel-agents
+upstream_source=upstream/superpowers/skills/dispatching-parallel-agents
+upstream_commit=b36e0829c6d0140e93cfef2ca599b1b07d4a7797
+content_sha256=e727500ce517de926e89ae11bea90cf9a58c34bc6fe000435ed7098e8a080867
+content_summary=面向 2 个以上互相独立、没有共享状态和顺序依赖的任务，规划并并发派发子 Agent，回收后核对冲突并独立验证。仅在用户显式调用，或 Agent 说明理由且用户明确同意后使用。
+published_at=2026-08-18T16:39:56+0800
+targets=codex,claude-code

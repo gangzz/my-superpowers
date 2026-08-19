@@ -1,0 +1,8 @@
+version=2026.08.16.1
+source=my-skills/structured-design
+upstream_source=original
+upstream_commit=none
+content_sha256=f27c84ffd6ead152f57b2d1ebd9ffce2c1f690732481c9048e46e3ae8b7beefd
+content_summary=结构化呈现复杂设计与分析。当任务的主要理解成本来自实体关系、数据流转、业务流程、状态变化、层级、依赖、边界或方案取舍时使用，例如系统架构、数据模型、Spec、项目方案、业务流程、服务设计和复杂思路分析。输出渐进展开的 Markdown/Mermaid 图示与少量必要文字。简单事实、短说明、单步操作、普通进度更新，或用户明确不要图示时不要使用。
+published_at=2026-08-16T23:00:33+0800
+targets=codex,claude-code
