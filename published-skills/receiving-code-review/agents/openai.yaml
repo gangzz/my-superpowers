@@ -1,0 +1,7 @@
+interface:
+  display_name: "接收代码评审"
+  short_description: "收到评审意见后：读完、复述、对照代码库核实，再回应和逐项实现，不做表演式认同"
+  default_prompt: "使用 $receiving-code-review 处理这些评审意见。"
+
+policy:
+  allow_implicit_invocation: false
