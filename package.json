@@ -5,9 +5,14 @@
   "scripts": {
     "skills:list": "node scripts/skills.mjs list",
     "skill:install": "node scripts/skills.mjs install",
-    "skill:check": "node scripts/skills.mjs check",
     "skill:publish": "node scripts/skills.mjs publish",
     "upstream:update": "git -C upstream/superpowers pull --ff-only"
+  },
+  "_comments": {
+    "skills:list": "列出 published-skills 中已经发布、可供使用的 Skill",
+    "skill:install": "验证并把 published-skills 中的指定 Skill 安装到用户级 Skill 目录",
+    "skill:publish": "验证并比较指定 Skill，确认后从 my-skills 发布到 published-skills",
+    "upstream:update": "使用 fast-forward 更新 upstream/superpowers 上游仓库"
   },
   "engines": {
     "node": ">=18"

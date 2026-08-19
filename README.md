@@ -37,8 +37,8 @@ my-superpowers/
 ├── README.md                       # 项目说明和使用入口
 ├── AGENTS.md                       # Agent 维护本仓库时必须遵守的规则
 ├── CLAUDE.md -> AGENTS.md          # Claude Code 共用同一套规则
-├── package.json                    # 查看、验证、发布和安装命令
-├── scripts/skills.mjs              # Skill 自动化脚本
+├── package.json                    # 查看、发布、安装和更新上游的命令
+├── scripts/skills.mjs              # Skill 列表、发布与安装脚本
 ├── my-skills/
 │   ├── <skill-name>/               # 开发和调试中的个人 Skill
 │   └── decisions/
@@ -53,12 +53,10 @@ my-superpowers/
 
 ```bash
 npm run upstream:update
-npm run skill:check -- <skill-name>
 npm run skill:publish -- <skill-name>
 ```
 
 - `upstream:update`：以 fast-forward 方式更新 Superpowers 上游仓库。
-- `skill:check`：验证 `my-skills/` 中的开发版本。
 - `skill:publish`：展示开发版与发布版差异，确认后复制运行文件、更新发布元数据并验证发布结果。
 
 具体维护规则由 [`AGENTS.md`](./AGENTS.md) 约束。以上命令都不会自动安装、提交或推送 Git。
