@@ -1,0 +1,8 @@
+version=2026.08.19.1
+source=my-skills/test-map
+upstream_source=original
+upstream_commit=none
+content_sha256=7592b7b2a10be66119dea1e03d0e35d2c1fd87033cb00424f57e715c3a8f0e31
+content_summary=在需要低成本理解、评审或汇报一个项目的测试套件时使用。首次建图仅在用户显式调用或明确同意后进行；项目已有 test-map.json 且本次会话改动了测试时，自动做增量更新并汇报。
+published_at=2026-08-19T18:53:56+0800
+targets=codex,claude-code

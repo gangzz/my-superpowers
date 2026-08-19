@@ -1,0 +1,8 @@
+version=2026.08.19.1
+source=my-skills/test-driven-development
+upstream_source=upstream/superpowers/skills/test-driven-development
+upstream_commit=b36e0829c6d0140e93cfef2ca599b1b07d4a7797
+content_sha256=2b36057f51bb799b8c6d765e28a9c0679d0ba4cb6bcbd577c3598c0820b949f4
+content_summary=在有可运行测试框架的项目中实现功能或修 Bug、动手写实现代码之前使用；项目没有测试基础设施时不适用。仅在用户显式调用，或 Agent 说明理由且用户明确同意后使用。
+published_at=2026-08-19T18:53:56+0800
+targets=codex,claude-code
