@@ -1,0 +1,7 @@
+interface:
+  display_name: "并行派发子 Agent"
+  short_description: "把互相独立的任务拆成聚焦的子 Agent 并发执行，再统一回收与验证"
+  default_prompt: "使用 $dispatching-parallel-agents 把这些互相独立的问题拆分并派发给子 Agent。"
+
+policy:
+  allow_implicit_invocation: false

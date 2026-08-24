@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Superpowers 测试地图</title>
+<style>
+  :root {
+    --bg: #f6f7f8;
+    --surface: #ffffff;
+    --ink: #20262e;
+    --muted: #64707c;
+    --line: #e2e6ea;
+    --chip: #eef1f4;
+    --gate: #a85c10;
+    --gate-bg: #fbf1e2;
+    --gate-line: #e3c090;
+    --flow: #39638e;
+    --flow-bg: #edf3f9;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Cascadia Mono", monospace;
+    --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #13171c;
+      --surface: #1b2128;
+      --ink: #e7eaee;
+      --muted: #98a2ac;
+      --line: #2a323c;
+      --chip: #242c35;
+      --gate: #e0a055;
+      --gate-bg: #2b2216;
+      --gate-line: #59421f;
+      --flow: #85add7;
+      --flow-bg: #1d2733;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #13171c;
+    --surface: #1b2128;
+    --ink: #e7eaee;
+    --muted: #98a2ac;
+    --line: #2a323c;
+    --chip: #242c35;
+    --gate: #e0a055;
+    --gate-bg: #2b2216;
+    --gate-line: #59421f;
+    --flow: #85add7;
+    --flow-bg: #1d2733;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.65;
+    margin: 0;
+    padding: 2.5rem 1.25rem 4rem;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+
+  header h1 { font-size: 1.7rem; font-weight: 700; margin: 0 0 .4rem; text-wrap: balance; }
+  header p.lede { color: var(--muted); margin: 0 0 1rem; max-width: 40em; }
+  .meta { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 2rem; }
+  .meta span {
+    background: var(--chip); border-radius: 999px; padding: .15rem .7rem;
+    font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+
+  .flow-scroll { overflow-x: auto; margin: 0 0 2.25rem; padding-bottom: .35rem; }
+  .flow { display: flex; align-items: stretch; min-width: max-content; }
+  .stage {
+    background: var(--flow-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: .45rem .8rem; text-align: center; min-width: 7.5rem;
+  }
+  .stage b { display: block; font-size: .82rem; font-weight: 600; }
+  .stage i { font-style: normal; font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .stage.gate { background: var(--gate-bg); border-color: var(--gate-line); }
+  .stage.gate b { color: var(--gate); }
+  .stage.aside { background: var(--chip); opacity: .85; }
+  .arrow { align-self: center; color: var(--muted); padding: 0 .45rem; font-size: .85rem; }
+  .flow-note { font-size: .82rem; color: var(--muted); margin: -.9rem 0 2.25rem; max-width: 44em; }
+  .flow-note em { font-style: normal; color: var(--gate); font-weight: 600; }
+
+  .toolbar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .8rem; }
+  .toolbar h2 { font-size: 1.05rem; margin: 0; }
+  .toolbar button {
+    font: inherit; font-size: .78rem; color: var(--flow);
+    background: none; border: 1px solid var(--line); border-radius: 6px;
+    padding: .2rem .7rem; cursor: pointer;
+  }
+  .toolbar button:hover { border-color: var(--flow); }
+  .toolbar button:focus-visible { outline: 2px solid var(--flow); outline-offset: 2px; }
+
+  details.scene {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    margin-bottom: .7rem; overflow: hidden;
+  }
+  details.scene.gated { border-color: var(--gate-line); }
+  details.scene > summary {
+    list-style: none; cursor: pointer;
+    display: grid; grid-template-columns: auto 1fr auto; gap: .9rem;
+    align-items: baseline; padding: .85rem 1.1rem;
+  }
+  details.scene > summary::-webkit-details-marker { display: none; }
+  details.scene > summary:hover { background: var(--chip); }
+  details.scene > summary:focus-visible { outline: 2px solid var(--flow); outline-offset: -2px; }
+  .num { font-family: var(--mono); font-size: .8rem; color: var(--muted); }
+  .gated .num { color: var(--gate); font-weight: 600; }
+  .scene-title b { font-weight: 600; font-size: .95rem; }
+  .scene-title small { display: block; color: var(--muted); font-size: .82rem; margin-top: .1rem; }
+  .count {
+    font-variant-numeric: tabular-nums; font-size: .78rem; color: var(--muted);
+    background: var(--chip); border-radius: 999px; padding: .1rem .6rem; white-space: nowrap;
+  }
+  .gated .count { background: var(--gate-bg); color: var(--gate); }
+
+  .scene-body { border-top: 1px solid var(--line); padding: .9rem 1.1rem 1rem; }
+  .scene-body p.why { font-size: .85rem; color: var(--muted); margin: .8rem 0 0; max-width: 44em; }
+
+  table.clauses { width: 100%; border-collapse: collapse; font-size: .87rem; }
+  table.clauses td { padding: .45rem 0; vertical-align: top; border-top: 1px solid var(--line); }
+  table.clauses tr:first-child td { border-top: none; }
+  td.situation { width: 42%; padding-right: 1rem; }
+  td.situation b { font-weight: 600; }
+  td.result { color: var(--muted); padding-right: 1rem; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; width: 3rem; }
+
+  details.raw { margin-top: .9rem; }
+  details.raw > summary { cursor: pointer; font-size: .78rem; color: var(--flow); list-style: none; }
+  details.raw > summary::-webkit-details-marker { display: none; }
+  details.raw > summary::before { content: "▸ "; }
+  details.raw[open] > summary::before { content: "▾ "; }
+  details.raw > summary:focus-visible { outline: 2px solid var(--flow); outline-offset: 2px; }
+
+  .cases-scroll { overflow-x: auto; margin-top: .5rem; }
+  table.cases { width: 100%; border-collapse: collapse; font-size: .76rem; line-height: 1.5; }
+  table.cases th {
+    text-align: left; font-weight: 600; color: var(--muted); font-size: .72rem;
+    letter-spacing: .05em; padding: .35rem .6rem; border-bottom: 1px solid var(--line);
+    background: var(--chip); position: sticky; top: 0;
+  }
+  table.cases td { padding: .32rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.case { font-family: var(--mono); font-size: .7rem; color: var(--muted); min-width: 16rem; }
+  td.point { min-width: 11rem; }
+  td.cl { color: var(--muted); white-space: nowrap; }
+  tr.file-row td {
+    font-family: var(--sans); font-weight: 600; font-size: .74rem; color: var(--ink);
+    background: var(--chip); border-bottom: 1px solid var(--line);
+  }
+
+  footer { margin-top: 2.4rem; border-top: 1px solid var(--line); padding-top: 1.1rem; font-size: .75rem; color: var(--muted); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    details.scene > summary, .toolbar button { transition: background .15s, border-color .15s; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Superpowers 测试地图</h1>
+  <p class="lede">upstream/superpowers 测试套件的场景化视图。六个场景概括全部担保；点开卡片看具体情形，再点开才见逐条用例（含中文测试点）。</p>
+  <div class="meta">
+    <span>142 个具名用例</span>
+    <span>28 个平台脚本</span>
+    <span>主角：brainstorm-server（123 例）</span>
+    <span>commit b36e082</span>
+    <span>由 grep 测试名生成，未读实现</span>
+  </div>
+</header>
+
+<div class="flow-scroll">
+  <div class="flow">
+    <div class="stage"><b>启动 / 重启 / 退出</b><i>场景 5 · 13 例</i></div>
+    <div class="arrow">→</div>
+    <div class="stage gate"><b>认证门</b><i>场景 1 · 20 例</i></div>
+    <div class="arrow">→</div>
+    <div class="stage"><b>文件服务</b><i>场景 2 · 17 例</i></div>
+    <div class="arrow">→</div>
+    <div class="stage"><b>实时通信</b><i>场景 3 · 48 例</i></div>
+    <div class="arrow">→</div>
+    <div class="stage"><b>断线恢复</b><i>场景 4 · 15 例</i></div>
+    <div class="arrow">＋</div>
+    <div class="stage aside"><b>遥测与浏览器</b><i>场景 6 · 10 例</i></div>
+  </div>
+</div>
+<p class="flow-note"><em>琥珀色是认证门</em>——全套件测得最重的位置。测试密度跟着风险走：开网络端口的组件最厚，纯文本 Skill 一个用例都没有。断线恢复后仍要重新过认证门。</p>
+
+<div class="toolbar">
+  <h2>六个场景</h2>
+  <button id="toggle-all" type="button">展开全部</button>
+</div>
+
+<details class="scene gated">
+  <summary>
+    <span class="num">1</span>
+    <span class="scene-title"><b>有人拿到链接但没有密钥来访问</b>
+      <small>页面、文件、WebSocket 一律拒绝；密钥首次使用后从地址栏消失，换成 HttpOnly cookie</small></span>
+    <span class="count">20 例</span>
+  </summary>
+  <div class="scene-body">
+    <table class="clauses">
+      <tr><td class="situation"><b>无凭访问</b>——不带密钥或密钥错误</td><td class="result">页面、文件、WebSocket 一律 403 或拒绝；错密钥不能靠有效 cookie 洗白</td><td class="n">6</td></tr>
+      <tr><td class="situation"><b>防泄漏</b>——密钥通过验证后</td><td class="result">地址栏密钥被抹掉，换发 HttpOnly SameSite=Strict cookie；响应带防泄漏、防嵌入头</td><td class="n">6</td></tr>
+      <tr><td class="situation"><b>跨源</b>——其它网站的页面带 cookie 连接</td><td class="result">同源放行，跨源拒绝</td><td class="n">2</td></tr>
+      <tr><td class="situation"><b>正常路径</b>——正牌访客后续访问</td><td class="result">凭 cookie 一路可用；恶意空载荷不崩服务器</td><td class="n">6</td></tr>
+    </table>
+    <details class="raw"><summary>逐条用例（20 · auth.test.js）</summary>
+      <div class="cases-scroll"><table class="cases">
+        <tr><th>案例</th><th>测试点</th><th>情形</th></tr>
+        <tr><td class="case">GET / without key is rejected with 403</td><td class="point">无密钥访问首页返回 403</td><td class="cl">无凭访问</td></tr>
+        <tr><td class="case">GET / with wrong key is rejected with 403</td><td class="point">错误密钥返回 403</td><td class="cl">无凭访问</td></tr>
+        <tr><td class="case">GET / with wrong key and valid cookie is rejected with 403</td><td class="point">错密钥即使带有效 cookie 也拒绝</td><td class="cl">无凭访问</td></tr>
+        <tr><td class="case">GET /files without key is rejected with 403</td><td class="point">无密钥取文件返回 403</td><td class="cl">无凭访问</td></tr>
+        <tr><td class="case">WS upgrade without key is rejected</td><td class="point">无密钥的 WebSocket 升级被拒</td><td class="cl">无凭访问</td></tr>
+        <tr><td class="case">403 page names "coding agent" and the key</td><td class="point">403 页面提示去 Agent 处找密钥</td><td class="cl">无凭访问</td></tr>
+        <tr><td class="case">valid key load sets an HttpOnly SameSite=Strict cookie</td><td class="point">验证通过换发严格 cookie</td><td class="cl">防泄漏</td></tr>
+        <tr><td class="case">GET / with valid query returns bootstrap instead of screen content</td><td class="point">带密钥首访先返回引导页而非内容</td><td class="cl">防泄漏</td></tr>
+        <tr><td class="case">bootstrap strips the key URL even when sessionStorage write fails</td><td class="point">引导页抹掉地址栏密钥，存储失败也照抹</td><td class="cl">防泄漏</td></tr>
+        <tr><td class="case">403 responses include leak-reduction and anti-framing headers</td><td class="point">403 响应带防泄漏、防嵌入头</td><td class="cl">防泄漏</td></tr>
+        <tr><td class="case">HTML responses include leak-reduction and anti-framing headers</td><td class="point">正常 HTML 响应同样带防护头</td><td class="cl">防泄漏</td></tr>
+        <tr><td class="case">/files responses include leak-reduction and anti-framing headers</td><td class="point">文件响应同样带防护头</td><td class="cl">防泄漏</td></tr>
+        <tr><td class="case">WS upgrade with valid cookie and same-origin Origin opens</td><td class="point">同源带 cookie 可建立连接</td><td class="cl">跨源</td></tr>
+        <tr><td class="case">WS upgrade with valid cookie but cross-origin Origin is rejected</td><td class="point">跨源即使带 cookie 也拒绝</td><td class="cl">跨源</td></tr>
+        <tr><td class="case">GET / with valid cookie (no query key) serves the screen</td><td class="point">之后凭 cookie 即可看页面</td><td class="cl">正常路径</td></tr>
+        <tr><td class="case">GET /files with valid key serves the file</td><td class="point">有密钥可取文件</td><td class="cl">正常路径</td></tr>
+        <tr><td class="case">WS upgrade with valid key opens</td><td class="point">有密钥可建立 WebSocket</td><td class="cl">正常路径</td></tr>
+        <tr><td class="case">WS upgrade with valid cookie opens</td><td class="point">有 cookie 可建立 WebSocket</td><td class="cl">正常路径</td></tr>
+        <tr><td class="case">server-started url includes the session key</td><td class="point">启动输出的链接携带会话密钥</td><td class="cl">正常路径</td></tr>
+        <tr><td class="case">null payload over an authed WS does not crash the server</td><td class="point">已认证连接上的空载荷不崩服务器</td><td class="cl">正常路径</td></tr>
+      </table></div>
+    </details>
+  </div>
+</details>
+
+<details class="scene">
+  <summary>
+    <span class="num">2</span>
+    <span class="scene-title"><b>有请求试图读内容目录之外的文件</b>
+      <small>软链接、硬链接、点文件、空文件名全部拦下；只送内容目录里最新的屏幕文件</small></span>
+    <span class="count">17 例</span>
+  </summary>
+  <div class="scene-body">
+    <table class="clauses">
+      <tr><td class="situation"><b>逃逸拦截</b>——软/硬链接、点文件、空文件名指向目录外</td><td class="result">全部拒绝；空文件名 404 不崩溃</td><td class="n">6</td></tr>
+      <tr><td class="situation"><b>选文件</b>——目录里有多个文件</td><td class="result">只把最新的 html 当作当前屏幕；非 html 和 macOS ._* 文件忽略</td><td class="n">3</td></tr>
+      <tr><td class="situation"><b>给对形态</b>——完整 HTML / 片段 / 还没有内容</td><td class="result">完整文档原样送出；片段套框架模板并注入 helper.js；无内容给等待页</td><td class="n">5</td></tr>
+      <tr><td class="situation"><b>路由与启动输出</b></td><td class="result">未定义路径 404；启动输出 server-started JSON 与 server-info</td><td class="n">3</td></tr>
+    </table>
+    <details class="raw"><summary>逐条用例（17 · server.test.js 服务部分）</summary>
+      <div class="cases-scroll"><table class="cases">
+        <tr><th>案例</th><th>测试点</th><th>情形</th></tr>
+        <tr><td class="case">does not serve symlinks that escape content dir via /files/</td><td class="point">/files 不跟随逃出目录的软链接</td><td class="cl">逃逸拦截</td></tr>
+        <tr><td class="case">does not serve hard links to files outside content dir via /files/</td><td class="point">/files 不送出指向目录外的硬链接</td><td class="cl">逃逸拦截</td></tr>
+        <tr><td class="case">does not serve symlinks that escape content dir via root screen selection</td><td class="point">选屏幕时不跟随逃逸软链接</td><td class="cl">逃逸拦截</td></tr>
+        <tr><td class="case">does not serve hard links that escape content dir via root screen selection</td><td class="point">选屏幕时不送出目录外硬链接</td><td class="cl">逃逸拦截</td></tr>
+        <tr><td class="case">does not serve dotfiles via /files/</td><td class="point">点文件不对外提供</td><td class="cl">逃逸拦截</td></tr>
+        <tr><td class="case">GET /files/ (empty name) returns 404 and does not crash the server</td><td class="point">空文件名返回 404 且不崩溃</td><td class="cl">逃逸拦截</td></tr>
+        <tr><td class="case">serves newest file by mtime</td><td class="point">按修改时间送出最新文件</td><td class="cl">选文件</td></tr>
+        <tr><td class="case">ignores non-html files for serving</td><td class="point">非 html 文件不参与展示</td><td class="cl">选文件</td></tr>
+        <tr><td class="case">ignores macOS resource-fork dotfiles (._*.html) when serving</td><td class="point">忽略 macOS 资源叉垃圾文件</td><td class="cl">选文件</td></tr>
+        <tr><td class="case">serves full HTML documents as-is (not wrapped)</td><td class="point">完整 HTML 文档原样送出</td><td class="cl">给对形态</td></tr>
+        <tr><td class="case">wraps content fragments in frame template</td><td class="point">HTML 片段套上框架模板</td><td class="cl">给对形态</td></tr>
+        <tr><td class="case">injects helper.js into waiting page</td><td class="point">等待页注入 helper.js</td><td class="cl">给对形态</td></tr>
+        <tr><td class="case">serves waiting page when no screens exist</td><td class="point">无内容时展示等待页</td><td class="cl">给对形态</td></tr>
+        <tr><td class="case">returns Content-Type text/html</td><td class="point">响应类型为 text/html</td><td class="cl">给对形态</td></tr>
+        <tr><td class="case">returns 404 for non-root paths</td><td class="point">未定义路径返回 404</td><td class="cl">路由与启动</td></tr>
+        <tr><td class="case">outputs server-started JSON on startup</td><td class="point">启动时输出 server-started JSON</td><td class="cl">路由与启动</td></tr>
+        <tr><td class="case">writes server-info to state/</td><td class="point">启动时把 server-info 写入 state/</td><td class="cl">路由与启动</td></tr>
+      </table></div>
+    </details>
+  </div>
+</details>
+
+<details class="scene">
+  <summary>
+    <span class="num">3</span>
+    <span class="scene-title"><b>客户端发来畸形、残缺或超大的消息，或多个连接同时进来</b>
+      <small>不崩溃、不乱记录、不为超大帧提前分配内存</small></span>
+    <span class="count">48 例</span>
+  </summary>
+  <div class="scene-body">
+    <table class="clauses">
+      <tr><td class="situation"><b>编解码</b>——消息尺寸从 0 到 65536+ 字节（含四个边界值）</td><td class="result">手写的 WebSocket 帧编解码全部正确，JSON 往返无损</td><td class="n">27</td></tr>
+      <tr><td class="situation"><b>恶意输入</b>——残缺帧、未掩码帧、超大帧</td><td class="result">残缺的等待补齐、违规的拒收、超大的在分配内存前拒绝</td><td class="n">5</td></tr>
+      <tr><td class="situation"><b>事件流转</b>——你在页面上点了选择</td><td class="result">写入 state/events 供 Agent 读取；非选择事件不写；新屏幕清空旧事件</td><td class="n">6</td></tr>
+      <tr><td class="situation"><b>并发与热更新</b>——多客户端 / 文件被修改</td><td class="result">并发正常、死连接被清理、html 变更自动推送刷新、畸形 JSON 不崩</td><td class="n">10</td></tr>
+    </table>
+    <p class="why">用例最多的原因：零依赖政策下他们手写了 WebSocket 协议实现。手写协议，边界枚举就是必需品——哪天换成现成库，编解码一组可以整体退休。</p>
+    <details class="raw"><summary>逐条用例（48 · ws-protocol.test.js + server.test.js 通信部分）</summary>
+      <div class="cases-scroll"><table class="cases">
+        <tr><th>案例</th><th>测试点</th><th>情形</th></tr>
+        <tr class="file-row"><td colspan="3">ws-protocol.test.js（32）</td></tr>
+        <tr><td class="case">computeAcceptKey produces correct RFC 6455 accept value</td><td class="point">握手 accept 值计算符合 RFC 6455</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">computeAcceptKey produces valid base64 for random keys</td><td class="point">随机 key 也产出合法 base64</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">encodes small text frame (&lt; 126 bytes)</td><td class="point">编码小文本帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">encodes empty text frame</td><td class="point">编码空帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">encodes medium text frame (126-65535 bytes)</td><td class="point">编码中等帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">encodes frame at exactly 125 bytes (max small)</td><td class="point">125 字节边界（小帧上限）</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">encodes frame at exactly 126 bytes (boundary)</td><td class="point">126 字节边界（进入扩展长度）</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">encodes frame at exactly 65535 bytes (max 16-bit)</td><td class="point">65535 字节边界（16 位上限）</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">encodes frame at exactly 65536 bytes (min 64-bit)</td><td class="point">65536 字节边界（进入 64 位）</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">encodes large frame (&gt; 65535 bytes)</td><td class="point">编码大帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">encodes close frame</td><td class="point">编码 close 帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">encodes pong frame with payload</td><td class="point">编码带载荷的 pong 帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">server frames are never masked (per RFC 6455)</td><td class="point">服务器帧从不掩码（RFC 要求）</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">decodes small masked text frame</td><td class="point">解码小掩码帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">decodes empty masked text frame</td><td class="point">解码空掩码帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">decodes medium masked text frame (126-65535 bytes)</td><td class="point">解码中等掩码帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">decodes large masked text frame (&gt; 65535 bytes)</td><td class="point">解码大掩码帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">decodes frame at 65535 bytes boundary</td><td class="point">解码 65535 边界帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">decodes frame at 65536 bytes boundary</td><td class="point">解码 65536 边界帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">decodes masked close frame</td><td class="point">解码掩码 close 帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">decodes close frame with status code</td><td class="point">解码带状态码的 close 帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">decodes close frame with status code and reason</td><td class="point">解码带状态码和理由的 close 帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">decodes masked ping frame</td><td class="point">解码掩码 ping 帧</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">handles multiple frames in a single buffer</td><td class="point">单缓冲多帧正确拆分</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">correctly unmasks with all mask byte values</td><td class="point">全部掩码字节值正确解掩码</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">roundtrip encode/decode of JSON message</td><td class="point">JSON 消息编解码往返无损</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">roundtrip masked client JSON message</td><td class="point">客户端掩码 JSON 往返无损</td><td class="cl">编解码</td></tr>
+        <tr><td class="case">returns null for incomplete frame (not enough header bytes)</td><td class="point">帧头不全返回 null 等待补齐</td><td class="cl">恶意输入</td></tr>
+        <tr><td class="case">returns null for incomplete frame (header ok, payload truncated)</td><td class="point">载荷截断返回 null 不崩</td><td class="cl">恶意输入</td></tr>
+        <tr><td class="case">returns null for incomplete extended-length header</td><td class="point">扩展长度头不全返回 null</td><td class="cl">恶意输入</td></tr>
+        <tr><td class="case">rejects unmasked client frame</td><td class="point">拒绝未掩码的客户端帧</td><td class="cl">恶意输入</td></tr>
+        <tr><td class="case">rejects oversized 64-bit frames before payload allocation</td><td class="point">超大帧在分配内存之前拒绝</td><td class="cl">恶意输入</td></tr>
+        <tr class="file-row"><td colspan="3">server.test.js 通信部分（16）</td></tr>
+        <tr><td class="case">writes choice events to state/events</td><td class="point">选择事件写入 state/events</td><td class="cl">事件流转</td></tr>
+        <tr><td class="case">does NOT write non-choice events to state/events</td><td class="point">非选择事件不写盘</td><td class="cl">事件流转</td></tr>
+        <tr><td class="case">relays user events to stdout with source field</td><td class="point">用户事件带来源转发到 stdout</td><td class="cl">事件流转</td></tr>
+        <tr><td class="case">clears state/events on new screen</td><td class="point">新屏幕出现时清空旧事件</td><td class="cl">事件流转</td></tr>
+        <tr><td class="case">logs screen-added on new file</td><td class="point">新文件记录 screen-added 日志</td><td class="cl">事件流转</td></tr>
+        <tr><td class="case">logs screen-updated on file change</td><td class="point">文件修改记录 screen-updated 日志</td><td class="cl">事件流转</td></tr>
+        <tr><td class="case">accepts WebSocket upgrade on /</td><td class="point">根路径接受 WebSocket 升级</td><td class="cl">并发与热更新</td></tr>
+        <tr><td class="case">handles multiple concurrent WebSocket clients</td><td class="point">多客户端并发正常</td><td class="cl">并发与热更新</td></tr>
+        <tr><td class="case">cleans up closed clients from broadcast list</td><td class="point">断开的客户端从广播名单清除</td><td class="cl">并发与热更新</td></tr>
+        <tr><td class="case">handles malformed JSON from client gracefully</td><td class="point">畸形 JSON 不崩溃</td><td class="cl">并发与热更新</td></tr>
+        <tr><td class="case">sends reload on new .html file</td><td class="point">新增 html 推送刷新</td><td class="cl">并发与热更新</td></tr>
+        <tr><td class="case">sends reload on .html file change</td><td class="point">修改 html 推送刷新</td><td class="cl">并发与热更新</td></tr>
+        <tr><td class="case">does NOT send reload for non-.html files</td><td class="point">非 html 改动不推送</td><td class="cl">并发与热更新</td></tr>
+        <tr><td class="case">does NOT send reload for ._*.html resource-fork dotfiles</td><td class="point">垃圾文件改动不推送</td><td class="cl">并发与热更新</td></tr>
+        <tr><td class="case">helper.js defines required APIs</td><td class="point">helper.js 具备全部必需 API</td><td class="cl">并发与热更新</td></tr>
+        <tr><td class="case">frame template has required structure</td><td class="point">框架模板结构完整</td><td class="cl">并发与热更新</td></tr>
+      </table></div>
+    </details>
+  </div>
+</details>
+
+<details class="scene">
+  <summary>
+    <span class="num">4</span>
+    <span class="scene-title"><b>你开着页面时网络断了</b>
+      <small>显示“重连中”，按 500→1000→2000ms 退避重试；恢复后自动接回会话，不用手动刷新</small></span>
+    <span class="count">15 例</span>
+  </summary>
+  <div class="scene-body">
+    <table class="clauses">
+      <tr><td class="situation"><b>断网瞬间</b></td><td class="result">显示“重连中”，500ms 后开始重试；三种连接状态正确显示</td><td class="n">2</td></tr>
+      <tr><td class="situation"><b>持续断网</b></td><td class="result">重试间隔 500→1000→2000ms 翻倍退避封顶；错误、空 socket、挂起计时器正确处理</td><td class="n">6</td></tr>
+      <tr><td class="situation"><b>断得太久</b>——超过宽限期</td><td class="result">显示“已断开”遮罩</td><td class="n">2</td></tr>
+      <tr><td class="situation"><b>网络恢复</b></td><td class="result">凭存储密钥自动接回会话；没存密钥则整页刷新；收到 reload 指令也刷新</td><td class="n">5</td></tr>
+    </table>
+    <details class="raw"><summary>逐条用例（15 · helper.test.js）</summary>
+      <div class="cases-scroll"><table class="cases">
+        <tr><th>案例</th><th>测试点</th><th>情形</th></tr>
+        <tr><td class="case">on disconnect shows Reconnecting and schedules a 500ms reconnect</td><td class="point">断开即显示重连中并安排 500ms 重试</td><td class="cl">断网瞬间</td></tr>
+        <tr><td class="case">reflects all three connection states</td><td class="point">三种连接状态正确显示</td><td class="cl">断网瞬间</td></tr>
+        <tr><td class="case">doubles the delay each call</td><td class="point">重试间隔每次翻倍</td><td class="cl">持续断网</td></tr>
+        <tr><td class="case">caps at the maximum</td><td class="point">重试间隔封顶</td><td class="cl">持续断网</td></tr>
+        <tr><td class="case">full progression from MIN caps at MAX and never exceeds it</td><td class="point">从最小到封顶全程不超限</td><td class="cl">持续断网</td></tr>
+        <tr><td class="case">exposes sane constants</td><td class="point">退避常量取值合理</td><td class="cl">持续断网</td></tr>
+        <tr><td class="case">reconnect delay backs off 500 -&gt; 1000 -&gt; 2000</td><td class="point">实际退避序列正确</td><td class="cl">持续断网</td></tr>
+        <tr><td class="case">hardens reconnection (onerror, null socket, clears pending timer)</td><td class="point">错误、空 socket、挂起计时器正确处理</td><td class="cl">持续断网</td></tr>
+        <tr><td class="case">renders a tombstone overlay when paused</td><td class="point">暂停时渲染遮罩</td><td class="cl">断得太久</td></tr>
+        <tr><td class="case">shows the tombstone and Disconnected after the grace period</td><td class="point">超过宽限期显示已断开遮罩</td><td class="cl">断得太久</td></tr>
+        <tr><td class="case">rebootstraps with stored key when a tombstoned connection comes back</td><td class="point">恢复后凭存储密钥重新接入</td><td class="cl">网络恢复</td></tr>
+        <tr><td class="case">reloads to recover when tombstoned and no sessionStorage key is present</td><td class="point">没存密钥则整页刷新恢复</td><td class="cl">网络恢复</td></tr>
+        <tr><td class="case">reloads on recovery and on reload messages</td><td class="point">恢复或收到 reload 指令时刷新</td><td class="cl">网络恢复</td></tr>
+        <tr><td class="case">uses sessionStorage key in the WebSocket URL when present</td><td class="point">有存储密钥时连接串携带密钥</td><td class="cl">网络恢复</td></tr>
+        <tr><td class="case">uses cookie-only WebSocket URL when no sessionStorage key is present</td><td class="point">无密钥时仅凭 cookie 连接</td><td class="cl">网络恢复</td></tr>
+      </table></div>
+    </details>
+  </div>
+</details>
+
+<details class="scene">
+  <summary>
+    <span class="num">5</span>
+    <span class="scene-title"><b>端口被占用 / 服务器重启 / 你忘了关</b>
+      <small>自动换端口并强制换新密钥；重启后原链接照常可用；闲置到点自动退出</small></span>
+    <span class="count">13 例</span>
+  </summary>
+  <div class="scene-body">
+    <table class="clauses">
+      <tr><td class="situation"><b>端口回退</b>——首选端口被占用</td><td class="result">改用随机端口，密钥强制换新；显式指定的令牌宁可启动失败也不复用</td><td class="n">3</td></tr>
+      <tr><td class="situation"><b>重启恢复</b></td><td class="result">端口和密钥从磁盘恢复，原链接照常可用；令牌文件权限收紧</td><td class="n">3</td></tr>
+      <tr><td class="situation"><b>闲置退出</b>——长时间没人使用</td><td class="result">到点关闭连接并退出；未认证请求不能重置计时</td><td class="n">4</td></tr>
+      <tr><td class="situation"><b>启动细节</b></td><td class="result">浏览器只在授权时自动打开一次；IPv6 地址加方括号</td><td class="n">3</td></tr>
+    </table>
+    <details class="raw"><summary>逐条用例（13 · lifecycle.test.js）</summary>
+      <div class="cases-scroll"><table class="cases">
+        <tr><th>案例</th><th>测试点</th><th>情形</th></tr>
+        <tr><td class="case">falls back to a random port when the preferred port is taken</td><td class="point">端口被占改用随机端口</td><td class="cl">端口回退</td></tr>
+        <tr><td class="case">fallback with persisted token generates a fresh unpersisted key</td><td class="point">回退时换新密钥且不持久化</td><td class="cl">端口回退</td></tr>
+        <tr><td class="case">fallback with explicit BRAINSTORM_TOKEN fails closed</td><td class="point">显式令牌遇回退宁可失败</td><td class="cl">端口回退</td></tr>
+        <tr><td class="case">persists the bound port AND key, and restores both on restart</td><td class="point">端口密钥持久化并重启恢复</td><td class="cl">重启恢复</td></tr>
+        <tr><td class="case">stored key can authenticate WebSocket after same-port restart</td><td class="point">重启后旧密钥仍可认证</td><td class="cl">重启恢复</td></tr>
+        <tr><td class="case">hardens existing persisted token file permissions</td><td class="point">令牌文件权限自动收紧</td><td class="cl">重启恢复</td></tr>
+        <tr><td class="case">server-info reports the configured idle_timeout_ms</td><td class="point">闲置超时配置如实上报</td><td class="cl">闲置退出</td></tr>
+        <tr><td class="case">idle shutdown closes an open WebSocket and the process exits</td><td class="point">闲置到点关连接退进程</td><td class="cl">闲置退出</td></tr>
+        <tr><td class="case">start-server.sh --idle-timeout-minutes sets the timeout</td><td class="point">命令行超时参数生效</td><td class="cl">闲置退出</td></tr>
+        <tr><td class="case">unauthenticated requests do not defeat the idle timeout</td><td class="point">未认证请求不能重置闲置计时</td><td class="cl">闲置退出</td></tr>
+        <tr><td class="case">auto-opens the browser once, on the first screen</td><td class="point">授权时只自动开一次浏览器</td><td class="cl">启动细节</td></tr>
+        <tr><td class="case">does NOT auto-open unless approved (BRAINSTORM_OPEN unset)</td><td class="point">未授权不自动开浏览器</td><td class="cl">启动细节</td></tr>
+        <tr><td class="case">server-started URL brackets IPv6 URL hosts</td><td class="point">IPv6 地址加方括号</td><td class="cl">启动细节</td></tr>
+      </table></div>
+    </details>
+  </div>
+</details>
+
+<details class="scene">
+  <summary>
+    <span class="num">6</span>
+    <span class="scene-title"><b>你关闭了遥测、没有授权自动打开浏览器</b>
+      <small>真的不发外部图片请求、不弹窗；Windows/WSL 下 URL 不经过 cmd.exe</small></span>
+    <span class="count">10 例</span>
+  </summary>
+  <div class="scene-body">
+    <table class="clauses">
+      <tr><td class="situation"><b>品牌显示</b></td><td class="result">框架页与等待页渲染带版本号 logo；Codex 打包版从清单读版本</td><td class="n">3</td></tr>
+      <tr><td class="situation"><b>遥测开关</b>——四种关闭环境变量任一生效</td><td class="result">不再请求远程图片，保留本地品牌</td><td class="n">4</td></tr>
+      <tr><td class="situation"><b>防注入</b>——Windows / WSL 自动打开浏览器</td><td class="result">URL 不经过 cmd.exe</td><td class="n">2</td></tr>
+      <tr><td class="situation"><b>无头环境</b>——Linux 无显示器</td><td class="result">保持无头，不尝试弹窗</td><td class="n">1</td></tr>
+    </table>
+    <details class="raw"><summary>逐条用例（10 · branding.test.js + browser-launcher.test.js）</summary>
+      <div class="cases-scroll"><table class="cases">
+        <tr><th>案例</th><th>测试点</th><th>情形</th></tr>
+        <tr class="file-row"><td colspan="3">branding.test.js（7）</td></tr>
+        <tr><td class="case">framed screens render versioned Prime Radiant logo by default</td><td class="point">框架页默认渲染带版本 logo</td><td class="cl">品牌显示</td></tr>
+        <tr><td class="case">waiting screen renders versioned Prime Radiant logo by default</td><td class="point">等待页默认渲染带版本 logo</td><td class="cl">品牌显示</td></tr>
+        <tr><td class="case">packaged Codex plugin reads version from .codex-plugin manifest</td><td class="point">Codex 打包版从清单读版本</td><td class="cl">品牌显示</td></tr>
+        <tr><td class="case">SUPERPOWERS_DISABLE_TELEMETRY=true omits remote image but keeps local branding</td><td class="point">关遥测去掉远程图片保留本地品牌</td><td class="cl">遥测开关</td></tr>
+        <tr><td class="case">SUPERPOWERS_DISABLE_TELEMETRY=yes also omits the remote image on the waiting screen</td><td class="point">取值 yes 同样生效</td><td class="cl">遥测开关</td></tr>
+        <tr><td class="case">DISABLE_TELEMETRY=true omits remote image for Claude Code telemetry opt-out</td><td class="point">Claude Code 遥测开关同样生效</td><td class="cl">遥测开关</td></tr>
+        <tr><td class="case">CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 omits remote image for Claude Code traffic opt-out</td><td class="point">非必要流量开关同样生效</td><td class="cl">遥测开关</td></tr>
+        <tr class="file-row"><td colspan="3">browser-launcher.test.js（3）</td></tr>
+        <tr><td class="case">Windows launcher does not route URLs through cmd.exe</td><td class="point">Windows 打开浏览器不经 cmd.exe</td><td class="cl">防注入</td></tr>
+        <tr><td class="case">WSL launcher does not route URLs through cmd.exe</td><td class="point">WSL 同样不经 cmd.exe</td><td class="cl">防注入</td></tr>
+        <tr><td class="case">Linux launcher stays headless without a display</td><td class="point">无显示器 Linux 保持无头</td><td class="cl">无头环境</td></tr>
+      </table></div>
+    </details>
+  </div>
+</details>
+
+<details class="scene">
+  <summary>
+    <span class="num">＋</span>
+    <span class="scene-title"><b>场外：hermes 插件引导与各平台安装</b>
+      <small>skill 注册与目录一致、引导内容干净不超长；插件在各平台装得上、点名 Skill 叫得应</small></span>
+    <span class="count">19 例 + 28 脚本</span>
+  </summary>
+  <div class="scene-body">
+    <table class="clauses">
+      <tr><td class="situation"><b>引导内容</b>——hermes 给模型注入引导</td><td class="result">剥离 frontmatter、去空白、含 using-superpowers 正文与工具映射、不超上下文限制</td><td class="n">10</td></tr>
+      <tr><td class="situation"><b>注册逻辑</b>——插件加载时</td><td class="result">只挂一个钩子；skill 与磁盘目录一致，缺失大声报错；引导只在首轮注入</td><td class="n">9</td></tr>
+      <tr><td class="situation"><b>平台安装</b>——Claude Code / Codex / OpenCode / Devin 等</td><td class="result">装得上、清单正确、点名 Skill 必触发（单轮/多轮/长上下文/小模型）</td><td class="n">28 脚本</td></tr>
+    </table>
+    <details class="raw"><summary>逐条用例（19 · hermes/test_bootstrap.py + test_plugin.py）</summary>
+      <div class="cases-scroll"><table class="cases">
+        <tr><th>案例</th><th>测试点</th><th>情形</th></tr>
+        <tr><td class="case">test_strips_yaml_block</td><td class="point">剥离 YAML frontmatter</td><td class="cl">引导内容</td></tr>
+        <tr><td class="case">test_no_frontmatter_returns_trimmed_content</td><td class="point">无 frontmatter 时返回修剪正文</td><td class="cl">引导内容</td></tr>
+        <tr><td class="case">test_strips_surrounding_whitespace_from_body</td><td class="point">去除正文首尾空白</td><td class="cl">引导内容</td></tr>
+        <tr><td class="case">test_repo_layout_resolves</td><td class="point">仓库布局下路径可解析</td><td class="cl">引导内容</td></tr>
+        <tr><td class="case">test_marker_and_wrapper</td><td class="point">引导内容带标记与包装</td><td class="cl">引导内容</td></tr>
+        <tr><td class="case">test_contains_using_superpowers_body</td><td class="point">包含 using-superpowers 正文</td><td class="cl">引导内容</td></tr>
+        <tr><td class="case">test_frontmatter_stripped</td><td class="point">注入内容不含 frontmatter</td><td class="cl">引导内容</td></tr>
+        <tr><td class="case">test_tool_mapping_sourced_from_reference_file</td><td class="point">工具映射取自参考文件</td><td class="cl">引导内容</td></tr>
+        <tr><td class="case">test_skill_view_guidance_present</td><td class="point">含查看 skill 的指引</td><td class="cl">引导内容</td></tr>
+        <tr><td class="case">test_under_hermes_context_spill_limit</td><td class="point">引导内容不超上下文限制</td><td class="cl">引导内容</td></tr>
+        <tr><td class="case">test_register_attaches_only_pre_llm_call_hook</td><td class="point">只挂载 pre-LLM 一个钩子</td><td class="cl">注册逻辑</td></tr>
+        <tr><td class="case">test_register_registers_every_stock_skill_as_path</td><td class="point">注册全部内置 skill 路径</td><td class="cl">注册逻辑</td></tr>
+        <tr><td class="case">test_registered_skills_match_skill_directories</td><td class="point">注册项与磁盘目录一致</td><td class="cl">注册逻辑</td></tr>
+        <tr><td class="case">test_first_turn_returns_bootstrap_context</td><td class="point">首轮返回引导上下文</td><td class="cl">注册逻辑</td></tr>
+        <tr><td class="case">test_later_turns_return_none</td><td class="point">后续轮次不再注入</td><td class="cl">注册逻辑</td></tr>
+        <tr><td class="case">test_hook_tolerates_future_kwargs</td><td class="point">钩子兼容未来新增参数</td><td class="cl">注册逻辑</td></tr>
+        <tr><td class="case">test_clone_layout_resolves_sibling_skills</td><td class="point">clone 布局解析同级 skills</td><td class="cl">注册逻辑</td></tr>
+        <tr><td class="case">test_flat_layout_resolves_nested_skills</td><td class="point">扁平布局解析嵌套 skills</td><td class="cl">注册逻辑</td></tr>
+        <tr><td class="case">test_missing_skills_raises_loudly</td><td class="point">skills 缺失时大声报错</td><td class="cl">注册逻辑</td></tr>
+      </table></div>
+    </details>
+  </div>
+</details>
+
+<footer>工作流试验产物 · 基于 upstream commit b36e082 · 全部由 grep 测试名生成，未读测试实现 · 本页无外部依赖，可离线打开</footer>
+</div>
+
+<script>
+  const btn = document.getElementById('toggle-all');
+  const scenes = document.querySelectorAll('details.scene');
+  btn.addEventListener('click', () => {
+    const anyClosed = [...scenes].some(d => !d.open);
+    scenes.forEach(d => d.open = anyClosed);
+    btn.textContent = anyClosed ? '收起全部' : '展开全部';
+  });
+</script>
+</body>
+</html>

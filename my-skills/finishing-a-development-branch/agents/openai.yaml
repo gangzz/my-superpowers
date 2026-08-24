@@ -1,0 +1,7 @@
+interface:
+  display_name: "收尾开发分支"
+  short_description: "验证测试后呈现合并、PR 或保留三个选项，按用户选择执行整合"
+  default_prompt: "使用 $finishing-a-development-branch 收尾这段工作。"
+
+policy:
+  allow_implicit_invocation: false

@@ -15,6 +15,10 @@ const validator = path.join(
   homedir(),
   ".codex/skills/.system/skill-creator/scripts/quick_validate.py",
 );
+const installationRoots = {
+  codex: path.join(homedir(), ".agents/skills"),
+  "claude-code": path.join(homedir(), ".claude/skills"),
+};
 
 function fail(message) {
   console.error(`错误：${message}`);
@@ -122,11 +126,6 @@ async function listSkills() {
   }
 }
 
-async function checkSkill(name) {
-  assertSkillName(name);
-  await validate(path.join(developmentRoot, name));
-}
-
 function showDiff(development, published) {
   if (!existsSync(published)) {
     console.log(`首次发布：${path.relative(root, development)} -> ${path.relative(root, published)}`);
@@ -215,11 +214,30 @@ async function publishSkill(name, flags) {
   }
 }
 
-async function installSkill(name) {
-  assertSkillName(name);
-  const published = path.join(publishedRoot, name);
-  await validate(published);
-  const installationRoot = path.join(homedir(), ".agents/skills");
+function readOption(argv, option) {
+  const index = argv.findIndex((item) => item === option || item.startsWith(`${option}=`));
+  if (index === -1) return undefined;
+  const item = argv[index];
+  const value = item.includes("=") ? item.slice(item.indexOf("=") + 1) : argv[index + 1];
+  if (!value || value.startsWith("--")) fail(`${option} 需要一个值。`);
+  return value;
+}
+
+function resolveTargets(releaseTargets, argv) {
+  const override = readOption(argv, "--target");
+  const source = override === undefined ? releaseTargets : override;
+  const targets = [...new Set((source ?? "").split(",").map((item) => item.trim()).filter(Boolean))];
+  const available = Object.keys(installationRoots).join("、");
+  if (!targets.length) {
+    fail(`未指定安装目标。请在 .release 中设置 targets，或使用 --target=<平台>。可用目标：${available}。`);
+  }
+  const unknown = targets.filter((target) => !(target in installationRoots));
+  if (unknown.length) fail(`未知安装目标：${unknown.join("、")}。可用目标：${available}。`);
+  return targets;
+}
+
+async function installTarget(name, published, target) {
+  const installationRoot = installationRoots[target];
   const destination = path.join(installationRoot, name);
   await mkdir(installationRoot, { recursive: true });
 
@@ -229,15 +247,25 @@ async function installSkill(name) {
   });
   if (existing) {
     const current = await realpath(destination).catch(() => null);
-    if (current === published) {
-      console.log(`${name} 已安装：${destination}`);
+    if (current === await realpath(published)) {
+      console.log(`${target}：${name} 已安装（${destination}）`);
       return;
     }
     fail(`${destination} 已存在，未覆盖。请先人工确认并处理该路径。`);
   }
 
   await symlink(published, destination, "dir");
-  console.log(`已安装 ${name}：${destination} -> ${published}`);
+  console.log(`${target}：已安装 ${name}（${destination} -> ${published}）`);
+}
+
+async function installSkill(name, argv) {
+  assertSkillName(name);
+  const published = path.join(publishedRoot, name);
+  await validate(published);
+  const release = await readKeyValues(path.join(published, ".release"));
+  for (const target of resolveTargets(release.targets, argv)) {
+    await installTarget(name, published, target);
+  }
 }
 
 const [command, name, ...rest] = process.argv.slice(2);
@@ -247,16 +275,13 @@ switch (command) {
   case "list":
     await listSkills();
     break;
-  case "check":
-    await checkSkill(name);
-    break;
   case "publish":
     await publishSkill(name, flags);
     break;
   case "install":
-    await installSkill(name);
+    await installSkill(name, rest);
     break;
   default:
-    console.log("可用命令：list、check <skill-name>、publish <skill-name> [--dry-run|--yes]、install <skill-name>");
+    console.log("可用命令：list、publish <skill-name> [--dry-run|--yes]、install <skill-name> [--target=codex,claude-code]");
     process.exit(command ? 1 : 0);
 }
