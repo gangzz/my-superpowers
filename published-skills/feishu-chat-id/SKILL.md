@@ -52,13 +52,13 @@ description: "显式调用，一次性通过飞书自建应用机器人的长连
 
    按以下顺序建立终端，失败时自动进入下一层：
 
-   1. 先用支持 PTY/TTY 的 shell 执行工具启动一个交互式 shell 并取得会话 ID；在 Codex 中通常使用 `exec_command`、设置 `tty: true`，命令使用当前 shell，例如 `zsh -f`。此时不要直接启动 Node.js 脚本。
-   2. 把这个 shell PTY 挂载到当前任务的 Codex Terminal channel，让用户可以直接接管输入；在 Codex Desktop 中通常使用 `codex_app__open_in_codex`，目标类型为 `terminal`，并传入上一步的会话 ID。
-   3. 终端展示调用返回成功或 `queued` 后，再通过 Agent 的 `write_stdin` 向同一个 PTY 发送一条不含凭证的命令：进入本 Skill 目录并运行 `node scripts/get-chat-id.mjs` 及用户指定的非敏感选项。`queued` 表示 UI 将异步打开，不要重复创建终端或回退。
-   4. 只有终端展示调用明确报错或不受支持，或者用户随后明确反馈 Codex Terminal 没有出现或无法接管时，才关闭该 shell PTY，并打开用户可见的系统 Terminal 运行同一条不含凭证的命令。在 macOS 上优先使用系统启动方式，例如 `osascript`；不要先尝试通过 Computer Use 操作 Terminal。
+   1. 在支持 PTY/TTY 的 shell 执行工具中以交互模式启动上述命令并取得会话 ID；在 Codex 中通常使用 `exec_command` 并设置 `tty: true`。
+   2. 把同一个 PTY 会话挂载到当前任务的 Codex Terminal channel，让用户可以直接接管输入；在 Codex Desktop 中通常使用 `codex_app__open_in_codex`，目标类型为 `terminal`，并传入上一步的会话 ID。
+   3. `codex_app__open_in_codex` 返回 `queued` 表示终端已被接受、将在桌面 UI 异步打开，应当视为成功并保留 PTY 等待用户输入。不要因为短时间内 `read_thread_terminal` 仍显示未附加，就重复创建终端或回退到系统 Terminal。
+   4. 只有终端展示调用明确报错或不受支持，或者用户随后明确反馈 Codex Terminal 没有出现或无法接管时，才关闭仍在等待输入的 PTY，并打开用户可见的系统 Terminal 运行同一条不含凭证的命令。在 macOS 上优先使用系统启动方式，例如 `osascript`；不要先尝试通过 Computer Use 操作 Terminal。
    5. 只有 Codex Terminal 和系统 Terminal 都无法使用时，才把上述本地命令交给用户并停止。
 
-   `write_stdin` 只允许发送启动命令或 `Ctrl-C` 等非敏感控制输入。不要通过聊天、命令行参数、环境变量、临时文件或 Agent 的 `write_stdin` 传递 App Secret。终端启动命令只能包含 Skill 路径和非敏感选项。
+   不要通过聊天、命令行参数、环境变量、临时文件或 Agent 的 `write_stdin` 传递 App Secret。系统 Terminal 的启动命令只能包含 Skill 路径和非敏感选项。
 
 2. 脚本会先准备固定版本的官方 `@larksuiteoapi/node-sdk`。若本地无法解析到该版本，只在系统临时目录安装；npm 缓存也位于该临时目录，退出时一并删除。不得改为依赖其他业务项目的 `node_modules`。
 

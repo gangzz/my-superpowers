@@ -1,0 +1,8 @@
+version=2026.09.09.2
+source=my-skills/asr-trans
+upstream_source=original
+upstream_commit=none
+content_sha256=bec7d3ed912cc81dc6fcf5f60bf6276d6ef9cf050f36bdd9d75287e486703f92
+content_summary=显式调用，将本地中文音频或视频转为经大模型纠错的 JSON，支持句子级或 token 级时间对齐；不做口语删改、翻译、说话人分离或剪辑。
+published_at=2026-09-09T19:08:11+0800
+targets=codex

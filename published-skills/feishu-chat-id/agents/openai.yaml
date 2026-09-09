@@ -1,0 +1,8 @@
+interface:
+  display_name: "获取飞书群 Chat ID"
+  short_description: "通过一次性长连接和群内随机确认码安全取得目标群 chat_id"
+  default_prompt: "使用 $feishu-chat-id 一次性取得目标飞书群的 chat_id，并输出可复制的环境变量配置行。"
+
+policy:
+  allow_implicit_invocation: false
+
