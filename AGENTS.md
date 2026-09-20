@@ -1,6 +1,6 @@
 # my-superpowers 维护规则
 
-本仓库是个人简体中文 Skill 库，不是 Superpowers 的 fork、公开翻译项目或完整 Plugin。维护目标是逐个理解、选择、调整、验证和发布独立 Skill。
+本仓库是个人简体中文 Skill 库，不是 Superpowers 的 fork 或公开翻译项目。默认逐个维护独立 Skill；Skill 可以携带所属运行代码、依赖声明、测试和开发工具，这些内容本身不构成建立 Plugin 的理由。只有确实需要多个 Skill、MCP、App、Hook 或独立平台生命周期作为一个安装单元时，才讨论 Plugin，并由用户明确决定。
 
 ## 目录边界
 
@@ -32,7 +32,7 @@ policy:
 1. 读取 `upstream/superpowers/skills/<skill-name>/` 和已有个人版本。
 2. 检查 `.source`、对应决策记录和当前发布版本，明确上游变化与个人变化。
 3. 先保守翻译和理解，不以“规范化”为理由重写经过验证的行为。
-4. 根据用户实际使用问题讨论调整；不要擅自扩大范围或引入 Plugin。
+4. 根据用户实际使用问题讨论调整；不要擅自扩大范围。运行代码、依赖或开发工具与所属 Skill 一起维护。只有用户明确决定建立平台级 Plugin 时，才迁移到 `plugins/`。
 5. 只修改 `my-skills/<skill-name>/`，并保持英文 Skill 名称和目录名、简体中文正文。
 6. 将行为决策写入 `my-skills/decisions/<skill-name>/YYYY-MM-DD-<topic>.md`。
 7. 更新 `.source`，运行适用的结构检查和行为验证。

@@ -1,0 +1,59 @@
+{
+  "specVersion": 1,
+  "kind": "card",
+  "cardKey": "ai-morning-brief",
+  "config": {
+    "updateMulti": true,
+    "widthMode": "fill"
+  },
+  "header": {
+    "title": { "kind": "plainText", "content": "AI早报" },
+    "theme": "blue"
+  },
+  "blocks": [
+    {
+      "kind": "block",
+      "components": [
+        {
+          "kind": "markdown",
+          "content": "**模型发布** [查看原文](https://example.com/model)\n来源：official"
+        },
+        {
+          "kind": "markdown",
+          "content": "入围理由：来自一手来源。",
+          "textSize": "notation",
+          "color": "grey"
+        },
+        {
+          "kind": "button",
+          "text": "讨论本文",
+          "appearance": "primaryText",
+          "behaviors": [
+            {
+              "kind": "callback",
+              "value": {
+                "action": "ff.workspace.inject",
+                "message": "讨论模型发布"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "block",
+      "components": [
+        {
+          "kind": "markdown",
+          "content": "**产品更新** [查看原文](https://example.com/product)"
+        },
+        {
+          "kind": "markdown",
+          "content": "入围理由：影响实际工作流。",
+          "textSize": "notation",
+          "color": "grey"
+        }
+      ]
+    }
+  ]
+}

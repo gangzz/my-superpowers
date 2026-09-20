@@ -1,0 +1,32 @@
+{
+  "specVersion": 1,
+  "kind": "card",
+  "cardKey": "feiforge-workspace-progress",
+  "config": { "widthMode": "fill" },
+  "header": {
+    "title": { "kind": "plainText", "content": "Workspace 执行进度" },
+    "theme": "blue"
+  },
+  "blocks": [
+    {
+      "kind": "block",
+      "components": [
+        {
+          "kind": "markdown",
+          "key": "answer",
+          "streamTarget": true,
+          "content": "正在执行……"
+        },
+        {
+          "kind": "collapsiblePanel",
+          "header": {
+            "title": { "kind": "plainText", "content": "执行明细" }
+          },
+          "components": [
+            { "kind": "markdown", "content": "等待工具返回" }
+          ]
+        }
+      ]
+    }
+  ]
+}

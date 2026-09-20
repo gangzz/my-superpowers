@@ -1,0 +1,43 @@
+{
+  "source": {
+    "kind": "live-feishu-openapi",
+    "status": 400,
+    "code": 230099,
+    "innerCode": 10002,
+    "errorPath": "ROOT -> body -> elements -> [4](tag: form)",
+    "message": "required and disabled both true"
+  },
+  "spec": {
+    "specVersion": 1,
+    "kind": "card",
+    "blocks": [
+      {
+        "kind": "block",
+        "components": [
+          {
+            "kind": "form",
+            "name": "project_create",
+            "components": [
+              {
+                "kind": "input",
+                "name": "project_name",
+                "required": true,
+                "disabled": true
+              },
+              {
+                "kind": "button",
+                "text": "创建",
+                "name": "submit",
+                "formAction": "submit"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "expectedIssue": {
+    "code": "required_disabled_conflict",
+    "path": "$.blocks[0].components[0].components[0].disabled"
+  }
+}

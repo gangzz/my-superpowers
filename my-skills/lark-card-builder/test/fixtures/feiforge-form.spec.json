@@ -1,0 +1,47 @@
+{
+  "specVersion": 1,
+  "kind": "card",
+  "cardKey": "feiforge-project-create",
+  "config": { "widthMode": "fill" },
+  "header": {
+    "title": { "kind": "plainText", "content": "创建项目" },
+    "theme": "blue",
+    "icon": { "kind": "standardIcon", "token": "file-form_colorful" }
+  },
+  "blocks": [
+    {
+      "kind": "block",
+      "components": [
+        {
+          "kind": "form",
+          "name": "create_project_form",
+          "components": [
+            {
+              "kind": "staticSelect",
+              "name": "project_type",
+              "required": true,
+              "placeholder": "选择项目类型",
+              "options": [
+                { "text": "Git 仓库", "value": "repo" },
+                { "text": "简单目录", "value": "simple" }
+              ]
+            },
+            {
+              "kind": "input",
+              "name": "project_name",
+              "required": true,
+              "placeholder": "项目名称"
+            },
+            {
+              "kind": "button",
+              "text": "创建",
+              "name": "create_project_submit",
+              "formAction": "submit",
+              "appearance": "primaryFilled"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

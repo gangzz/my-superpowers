@@ -1,0 +1,10 @@
+export declare const SNAPSHOT_ID: "feishu-card-json-v2-2026-09-20-r2";
+export declare const HEADER_THEMES: readonly ["blue", "wathet", "turquoise", "green", "yellow", "orange", "red", "carmine", "violet", "purple", "indigo", "grey", "default"];
+export declare const SUPPORTED_ICON_TOKENS: readonly ["done_outlined", "close_outlined", "add_outlined", "edit_outlined", "delete-trash_outlined", "search_outlined", "setting_outlined", "info_outlined", "warning_outlined", "time_outlined", "calendar_outlined", "calendar-add_outlined", "member_outlined", "group_outlined", "chat_outlined", "mail_outlined", "link-copy_outlined", "share_outlined", "download_outlined", "bell_outlined", "pin_outlined", "attachment_outlined", "approval_outlined", "calendar_colorful", "todo_colorful", "vote_colorful", "file-lark-minutes_colorful", "wiki-bitable_colorful", "file-form_colorful", "larkcommunity_colorful", "hirelogo_colorful", "lark-logo_colorful", "meego_colorful", "myai_colorful", "apaas_colorful", "approval_colorful", "ai-common_colorful"];
+export type SupportedIconToken = (typeof SUPPORTED_ICON_TOKENS)[number];
+export declare const BUILT_IN_COLORS: readonly ["blue", "carmine", "green", "indigo", "lime", "orange", "purple", "red", "sunflower", "turquoise", "violet", "wathet", "yellow", ...string[], "white", "bg-white"];
+export declare const BUILT_IN_TEXT_SIZES: readonly ["heading-0", "heading-1", "heading-2", "heading-3", "heading-4", "normal", "notation"];
+export declare const TAG_COLORS: readonly ["neutral", "blue", "turquoise", "lime", "orange", "violet", "indigo", "wathet", "green", "yellow", "red", "purple", "carmine"];
+export declare function isBuiltInColor(value: string): boolean;
+export declare function isBuiltInTextSize(value: string): boolean;
+//# sourceMappingURL=snapshot.d.ts.map

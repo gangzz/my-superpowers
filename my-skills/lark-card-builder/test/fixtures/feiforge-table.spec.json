@@ -1,0 +1,27 @@
+{
+  "specVersion": 1,
+  "kind": "card",
+  "header": {
+    "title": { "kind": "plainText", "content": "项目列表" },
+    "theme": "grey"
+  },
+  "blocks": [
+    {
+      "kind": "block",
+      "components": [
+        { "kind": "markdown", "content": "当前已注册项目" },
+        {
+          "kind": "table",
+          "columns": [
+            { "name": "name", "displayName": "名称", "dataType": "text" },
+            { "name": "type", "displayName": "类型", "dataType": "text" }
+          ],
+          "rows": [
+            { "name": "ai-daily", "type": "repo" },
+            { "name": "notes", "type": "simple" }
+          ]
+        }
+      ]
+    }
+  ]
+}

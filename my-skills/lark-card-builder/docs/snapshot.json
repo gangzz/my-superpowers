@@ -1,0 +1,62 @@
+{
+  "snapshot": "feishu-card-json-v2-2026-09-20-r2",
+  "capturedAt": "2026-09-20T20:08:57+08:00",
+  "strategy": "official-markdown-sha256",
+  "sources": [
+    {
+      "id": "structure",
+      "url": "https://open.feishu.cn/document/feishu-cards/card-json-v2-structure.md",
+      "sha256": "afd94bb6f035e930b3d40a08ad08b7109672fb850e8a0369cb80e9398a57e90f"
+    },
+    {
+      "id": "components",
+      "url": "https://open.feishu.cn/document/feishu-cards/card-json-v2-components/component-json-v2-overview.md",
+      "sha256": "d339863a36bbe75c7e7a6b67afe97bb2643c429aaa792b7087149bd214077b14"
+    },
+    {
+      "id": "colors",
+      "url": "https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/enumerations-for-fields-related-to-color.md",
+      "sha256": "ae1689b4f4cc5b46d05460f592403534ebe18fbcad664decef730aff8608635c"
+    },
+    {
+      "id": "icons",
+      "url": "https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/enumerations-for-icons.md",
+      "sha256": "cfdab0f088b2322392ae84d7514c8bd826362b981a6e1e74c13dbb3b9c10f206"
+    },
+    {
+      "id": "title",
+      "url": "https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/content-components/title.md",
+      "sha256": "95756b9a1a92285e5d7d69d63292293af45e56661a76dcf5524a2218240e379c"
+    },
+    {
+      "id": "table",
+      "url": "https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/content-components/table.md",
+      "sha256": "e155449d469d3daf8a570d200bac4f93f1c81da005b3dac600e8144477fd876e"
+    },
+    {
+      "id": "button",
+      "url": "https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/interactive-components/button.md",
+      "sha256": "5aee665b440e613b221ade7ed67c7981353a03a92612666dbb8484f79e3eab5d"
+    },
+    {
+      "id": "input",
+      "url": "https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/interactive-components/input.md",
+      "sha256": "cec14bd0c18b972c4dd959e35a9db963a9d955225dcebd276a05fbcb6effc10f"
+    },
+    {
+      "id": "select-static",
+      "url": "https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/interactive-components/single-select-dropdown-menu.md",
+      "sha256": "c5738626f7e7b44dc56e8dba232698971eb26a573f39a9f70ac8a42e235573ce"
+    },
+    {
+      "id": "form",
+      "url": "https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/containers/form-container.md",
+      "sha256": "b363463671c515af8a50495657773f6b2b8d63d17357e5ef906c7ba749b3399d"
+    },
+    {
+      "id": "column-set",
+      "url": "https://open.feishu.cn/document/uAjLw4CM/ukzMukzMukzM/feishu-cards/card-json-v2-components/containers/column-set.md",
+      "sha256": "9df59f6c110b6bc2f9af9f984029cf8668ecc8f64f7a85d55f73b64560728bc9"
+    }
+  ]
+}

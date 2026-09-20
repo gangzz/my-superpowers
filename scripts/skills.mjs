@@ -69,7 +69,7 @@ async function validate(skillDirectory) {
 async function listFiles(directory, base = directory) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (entry.name === ".release" || entry.name === ".source" || entry.name === ".DS_Store") continue;
+    if ([".release", ".source", ".DS_Store", "node_modules"].includes(entry.name)) continue;
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) files.push(...await listFiles(absolute, base));
     else if (entry.isFile()) files.push(path.relative(base, absolute));
@@ -136,6 +136,7 @@ function showDiff(development, published) {
     "--exclude=.source",
     "--exclude=.release",
     "--exclude=.DS_Store",
+    "--exclude=node_modules",
     published,
     development,
   ], { cwd: root, encoding: "utf8" });
@@ -152,8 +153,19 @@ function showDiff(development, published) {
 async function copyRuntimeFiles(source, destination) {
   await cp(source, destination, {
     recursive: true,
-    filter: (current) => ![".source", ".DS_Store"].includes(path.basename(current)),
+    filter: (current) => ![".source", ".DS_Store", "node_modules"].includes(path.basename(current)),
   });
+}
+
+function prepareRuntimeDependencies(published) {
+  const packageFile = path.join(published, "package.json");
+  const lockFile = path.join(published, "package-lock.json");
+  if (!existsSync(packageFile) && !existsSync(lockFile)) return;
+  if (!existsSync(packageFile) || !existsSync(lockFile)) {
+    fail(`${path.relative(root, published)} 必须同时包含 package.json 和 package-lock.json。`);
+  }
+  const status = run("npm", ["ci", "--omit=dev", "--prefix", published]);
+  if (status !== 0) fail(`${path.relative(root, published)} 运行依赖准备失败。`);
 }
 
 async function publishSkill(name, flags) {
@@ -263,6 +275,7 @@ async function installSkill(name, argv) {
   const published = path.join(publishedRoot, name);
   await validate(published);
   const release = await readKeyValues(path.join(published, ".release"));
+  prepareRuntimeDependencies(published);
   for (const target of resolveTargets(release.targets, argv)) {
     await installTarget(name, published, target);
   }

@@ -1,0 +1,16 @@
+{
+  "name": "media-download-skill-runtime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "submit": "node scripts/submit.mjs",
+    "host": "node scripts/host.mjs"
+  },
+  "dependencies": {
+    "patchright": "1.61.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

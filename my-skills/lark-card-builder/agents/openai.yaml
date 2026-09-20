@@ -1,0 +1,7 @@
+interface:
+  display_name: "Lark Card Builder"
+  short_description: "构建并校验可自动分片的飞书 Card JSON 2.0"
+  default_prompt: "使用 $lark-card-builder 将这份逻辑卡片定义编译为经过校验、可自动分片的飞书 Card JSON 2.0。"
+
+policy:
+  allow_implicit_invocation: true
