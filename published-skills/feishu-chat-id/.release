@@ -1,8 +1,0 @@
-version=2026.08.24.2
-source=my-skills/feishu-chat-id
-upstream_source=original
-upstream_commit=none
-content_sha256=c193891ad1c1bb850203b974dd49847c7b23013aeb2e65dd1876276ebfe6ac7e
-content_summary=显式调用，一次性通过飞书自建应用机器人的长连接取得目标群 chat_id，并输出可复制的 .env 配置行；不修改或保存业务项目配置。
-published_at=2026-08-24T17:31:52+0800
-targets=codex

@@ -1,3 +1,4 @@
 source=upstream/superpowers/skills/dispatching-parallel-agents
 commit=b36e0829c6d0140e93cfef2ca599b1b07d4a7797
 skill_sha256=1968923066f3b707eb01d1992cdf4c42284c3855f70253b9cd5000ff45fca13c
+targets=codex,claude-code

@@ -1,0 +1,4 @@
+source=original
+commit=none
+summary=原创测试套件低成本理解与汇报 Skill
+targets=codex,claude-code

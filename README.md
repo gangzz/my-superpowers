@@ -10,7 +10,7 @@
 
 随着使用和演进，我也会创建自己的 Skill。Skill 可以携带完成任务所需的运行代码、依赖声明和开发工具；是否需要 Plugin 取决于平台级交付边界，而不是有没有代码。
 
-这个项目不是 Superpowers 的 fork，不追求完整翻译或替代上游，也不是面向所有人的通用能力集。上游仓库只作为持续更新的来源；个人修改与上游源码隔离，经过确认的版本才进入发布目录。
+这个项目不是 Superpowers 的 fork，不追求完整翻译或替代上游，也不是面向所有人的通用能力集。上游仓库只作为持续更新的来源；个人修改与上游源码隔离，经过确认后在本机生成稳定发布快照。
 
 ## 项目来源与收录范围
 
@@ -26,7 +26,7 @@ npm run skills:list
 npm run skill:install -- <skill-name>
 ```
 
-第一个命令查看已发布的 Skill，第二个命令验证并安装指定 Skill。日常使用只安装 `published-skills/` 中的版本，不直接使用开发目录。
+第一个命令查看本机已发布的 Skill，第二个命令验证并安装指定 Skill。日常使用只安装 `published-skills/` 中的本机稳定快照，不直接使用开发目录。
 
 Skill 默认由用户明确调用。Agent 只有在能说明具体问题、预期收益和主要成本时才可以建议；建议不等于调用。单个 Skill 如有经过授权的例外，以其 `SKILL.md` 和平台配置为准。
 
@@ -46,7 +46,7 @@ my-superpowers/
 │   └── decisions/
 │       └── <skill-name>/           # 对应 Skill 的个人决策记录
 ├── published-skills/
-│   └── <skill-name>/               # 用户确认发布的稳定版本
+│   └── <skill-name>/               # 本机生成且被 Git 忽略的稳定运行快照
 └── upstream/
     └── superpowers/                # 独立的上游 Git 仓库，已被忽略
 ```
@@ -63,10 +63,20 @@ npm run skill:publish -- <skill-name>
 
 具体维护规则由 [`AGENTS.md`](./AGENTS.md) 约束。以上命令都不会自动安装、提交或推送 Git。
 
+`published-skills/` 不上传。换电脑时只同步 Git 中的源码，然后在新电脑本地执行：
+
+```bash
+git pull
+npm run skill:publish -- <skill-name>
+npm run skill:install -- <skill-name>
+```
+
+不同电脑的本机日期版本可能不同；运行内容是否一致以 `.release` 的 `content_sha256` 为准。安装目标由开发版 `.source` 中的 `targets` 重建。
+
 ## 已收录的能力
 
-- [`using-superpowers`](./published-skills/using-superpowers/)：自动进行克制的 Skill 检查，只在收益明确时建议，并保留用户对实际调用的决定权。
-- [`brainstorming`](./published-skills/brainstorming/)：通过克制的澄清和方案比较，把想法收敛为可执行的设计决策。
-- [`media-download`](./published-skills/media-download/)：下载并验证用户指定的单个公开媒体作品；当前生产支持抖音公开视频。
+- [`using-superpowers`](./my-skills/using-superpowers/)：自动进行克制的 Skill 检查，只在收益明确时建议，并保留用户对实际调用的决定权。
+- [`brainstorming`](./my-skills/brainstorming/)：通过克制的澄清和方案比较，把想法收敛为可执行的设计决策。
+- [`media-download`](./my-skills/media-download/)：下载并验证用户指定的单个公开媒体作品；当前生产支持抖音公开视频。
 
 具体行为、调用方式和发布信息请进入对应 Skill 目录查看，不在本页重复维护。

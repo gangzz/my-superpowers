@@ -1,3 +1,4 @@
 source=original
 commit=none
 summary=原创中文音视频 ASR 与大模型保真纠错 Skill
+targets=codex

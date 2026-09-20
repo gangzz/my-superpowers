@@ -1,3 +1,4 @@
 source=original
 commit=none
 summary=原创飞书 Card JSON 2.0 强类型 Builder、证据约束、自动分片编译器与 CLI Skill
+targets=codex

@@ -206,7 +206,7 @@ async function publishSkill(name, flags) {
       `content_sha256=${await contentHash(staging)}`,
       `content_summary=${await readDescription(staging)}`,
       `published_at=${publishedAt()}`,
-      `targets=${previousRelease.targets ?? "codex"}`,
+      `targets=${source.targets ?? previousRelease.targets ?? "codex"}`,
       "",
     ].join("\n");
     await writeFile(path.join(staging, ".release"), release, "utf8");
