@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 
@@ -77,7 +77,7 @@ test('失败后重新提交会创建排在队尾的新 Job', (t) => {
   assert.notEqual(replacement.id, first.id);
 });
 
-test('人工选择后的期望分辨率作为可选 Job 输入持久化', (t) => {
+test('期望分辨率和逐任务输出目录作为可选 Job 输入持久化', (t) => {
   const paths = tempRuntime(t);
   const store = createJobStore({ databasePath: paths.jobsDatabase, idFactory: createIds() });
   t.after(() => store.close());
@@ -86,17 +86,20 @@ test('人工选择后的期望分辨率作为可选 Job 输入持久化', (t) =>
   const selected = store.submitDownload({
     url: 'https://example.com/selected',
     expectedVideo: { width: 720, height: 1280 },
+    outputDirectory: './selected-output',
   });
 
   assert.equal(ordinary.expectedVideo, null);
+  assert.equal(ordinary.outputDirectory, null);
   assert.deepEqual(selected.expectedVideo, { width: 720, height: 1280 });
+  assert.equal(selected.outputDirectory, resolve('./selected-output'));
   assert.throws(
     () => store.submitDownload({ url: selected.url, expectedVideo: { width: 0, height: 1280 } }),
     /positive integer/,
   );
 });
 
-test('既有 SQLite 队列会补齐清晰度交互字段', (t) => {
+test('既有 SQLite 队列会补齐清晰度和逐任务输出目录字段', (t) => {
   const paths = tempRuntime(t);
   const legacy = new DatabaseSync(paths.jobsDatabase);
   legacy.exec(`
@@ -118,6 +121,7 @@ test('既有 SQLite 队列会补齐清晰度交互字段', (t) => {
   const job = store.submitDownload({
     url: 'https://example.com/migrated',
     expectedVideo: { width: 720, height: 1280 },
+    outputDirectory: join(paths.root, 'migrated-output'),
   });
   const command = store.submitBrowserCommand({
     type: 'open_browser',
@@ -125,6 +129,7 @@ test('既有 SQLite 队列会补齐清晰度交互字段', (t) => {
     purpose: 'quality-selection',
   });
   assert.deepEqual(job.expectedVideo, { width: 720, height: 1280 });
+  assert.equal(job.outputDirectory, join(paths.root, 'migrated-output'));
   assert.equal(command.purpose, 'quality-selection');
 });
 
@@ -163,8 +168,10 @@ test('BrowserHost 用一个 Context 顺序执行两个 Job，并为每个 Job �
   const session = new BrowserSession({ driver: browser.driver, profilePath: paths.defaultProfile });
   const seen = [];
 
-  store.submitDownload({ url: 'https://example.com/one' });
-  store.submitDownload({ url: 'https://example.com/two' });
+  const firstOutput = join(paths.root, 'author-one');
+  const secondOutput = join(paths.root, 'author-two');
+  store.submitDownload({ url: 'https://example.com/one', outputDirectory: firstOutput });
+  store.submitDownload({ url: 'https://example.com/two', outputDirectory: secondOutput });
   const host = new BrowserHost({
     store,
     session,
@@ -175,7 +182,7 @@ test('BrowserHost 用一个 Context 顺序执行两个 Job，并为每个 Job �
       ownerId,
     }),
     executeDownload: async ({ job, page }) => {
-      seen.push([job.url, page]);
+      seen.push([job.url, job.outputDirectory, page]);
       return { output: `${job.id}.mp4` };
     },
     requiresBrowser: async () => true,
@@ -186,7 +193,8 @@ test('BrowserHost 用一个 Context 顺序执行两个 Job，并为每个 Job �
   assert.equal(browser.state.launches, 1);
   assert.equal(browser.state.contextCloses, 1);
   assert.equal(browser.state.pages.length, 2);
-  assert.notEqual(seen[0][1], seen[1][1]);
+  assert.deepEqual(seen.map(([, outputDirectory]) => outputDirectory), [firstOutput, secondOutput]);
+  assert.notEqual(seen[0][2], seen[1][2]);
   assert.equal(browser.state.pages.every((page) => page.closed), true);
   assert.deepEqual(store.listDownloads().map((job) => job.status), ['succeeded', 'succeeded']);
 });

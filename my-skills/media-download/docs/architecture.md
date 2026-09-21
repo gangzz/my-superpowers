@@ -20,12 +20,14 @@ URL 是用户唯一必须提供的输入。站点 Extractor 识别作品的实�
 ## 核心对象
 
 - `Extractor`：匹配 URL 并发现站点事实。基于浏览器的 Extractor 在自身实机探针通过前必须声明为 `visible-required`；通过后才可标记为 `headless-verified`。
-- `MediaManifest`：不可变的事实快照，包含来源身份、内容类型、候选资源、媒体属性、访问模式和证据引用。
+- `MediaManifest`：不可变的事实快照，包含来源身份、可取得的作者、发布内容与互动数据、内容类型、候选资源、媒体属性、访问模式和证据引用。
 - `SelectionPolicy`：与站点无关的用户偏好。v0.1 内置策略为：当前播放器资源、音视频合并优先、必须有音频；没有当前标记时回退到最低合并资源，合并资源不可用时允许封装分离轨道。
 - `DownloadPlan`：一次调用中冻结的资源选择与传输计划。
-- `DownloadJob`：由 SQLite 队列管理的持久化单 URL 执行状态，与 Manifest 分离。
+- `DownloadJob`：由 SQLite 队列管理的持久化单 URL 执行状态，与 Manifest 分离；可携带本次任务的绝对 `outputDirectory`。
 
-普通 `DownloadJob` 只需要 URL。人工选择清晰度后，调用者可以把 `close_browser()` 返回的 `{width, height}` 作为可选 `expectedVideo` 提交；Extractor 和 Verifier 必须验证实际结果，不匹配时以 `quality_not_applied` 失败。
+普通 `DownloadJob` 只要求 URL。调用者显式指定输出目录时，提交入口把它解析成绝对路径并写入 `outputDirectory`；目录随 Job 持久化，BrowserHost 不按自身启动位置重解释。未指定时沿用 Host 默认目录。人工选择清晰度后，调用者可以把 `close_browser()` 返回的 `{width, height}` 作为可选 `expectedVideo` 提交；Extractor 和 Verifier 必须验证实际结果，不匹配时以 `quality_not_applied` 失败。
+
+执行器优先使用 `job.outputDirectory`。为兼容迁移前的队列和未指定目录的程序化调用，Job 没有目录时才回退到 Host 的默认输出目录。同一 Host 顺序领取不同 Job 时，可以分别写入不同目录；创建目录和分配文件名都发生在读取当前 Job 之后。
 
 `DownloadJob` 的状态固定为：
 
@@ -75,6 +77,14 @@ Profile 文件锁覆盖 BrowserHost 持有 Persistent Context 的完整周期。
 Extractor 只声明访问要求，由共享规划器选择匹配的 Transport 实现。资源发现过程即使使用浏览器，最终选中的资源仍可能通过普通 HTTP 传输。
 
 当前生产运行时只实现 `browser-session` 和 `browser-page`；`direct-http` 仍是扩展契约。音频与图文也只有 Manifest 和选择契约，尚未形成端到端交付能力。
+
+## 媒体来源记录
+
+成功下载后，在媒体旁写入同名的 `*.mp4.source.json`。来源记录 schema v2 保留一个规范作品链接，并保存 Manifest 中已确认的 `author`、`content` 与可选 `engagement`；不保存用户输入链接、临时跳转链接或带签名的媒体 URL。
+
+`engagement` 只允许点赞、收藏、评论和分享计数，不定义播放量字段。所有互动数与本次下载同时取得，顶层 `downloadedAt` 即其快照时间；不另建 `collectedAt` 或 `capturedAt`。平台未提供或 Extractor 未可靠取得的字段直接省略，不能写成 `0`。
+
+Extractor 的版本、发现路径、选择依据和身份对齐属于运行契约、证据或失败日志，不扩张为长期内容元数据。来源记录仍保留传输与资源选择摘要，以便解释本地文件怎样生成；Manifest schema 与 sidecar schema 独立演进。
 
 `BrowserPageTransport` 的正文链路固定为：
 

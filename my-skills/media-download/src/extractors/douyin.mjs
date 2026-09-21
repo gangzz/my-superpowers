@@ -149,6 +149,21 @@ async function inspectActivePlayer(page, { play = false } = {}) {
 
 async function readTargetRenderData(page, contentId) {
   return page.evaluate(({ id, idFields }) => {
+    const firstString = (values) => values.find((value) => typeof value === 'string' && value.trim() !== '') ?? null;
+    const countValue = (value) => {
+      const parsed = typeof value === 'string' && /^\d+$/u.test(value) ? Number(value) : value;
+      return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+    };
+    const firstCount = (objects, fields) => {
+      for (const object of objects) {
+        if (!object || typeof object !== 'object') continue;
+        for (const field of fields) {
+          const value = countValue(object[field]);
+          if (value != null) return value;
+        }
+      }
+      return null;
+    };
     const parse = (text) => {
       for (const value of [text, (() => { try { return decodeURIComponent(text); } catch { return ''; } })()]) {
         try { return JSON.parse(value); } catch {}
@@ -198,8 +213,75 @@ async function readTargetRenderData(page, contentId) {
       }
     };
     collect(target.video);
+
+    const description = typeof target.desc === 'string' ? target.desc : null;
+    const rawAuthor = target.author ?? target.authorInfo ?? target.author_info ?? null;
+    const authorId = firstString([
+      rawAuthor?.sec_uid,
+      rawAuthor?.secUid,
+      rawAuthor?.uid_str,
+      rawAuthor?.uidStr,
+    ]);
+    const nickname = firstString([rawAuthor?.nickname, rawAuthor?.nickName]);
+    const author = authorId && nickname ? {
+      id: authorId,
+      nickname,
+      url: `https://www.douyin.com/user/${encodeURIComponent(authorId)}`,
+    } : null;
+
+    const tags = [];
+    const addTag = (value) => {
+      const tag = typeof value === 'string' ? value.trim().replace(/^#+/u, '') : '';
+      if (tag && !tags.includes(tag)) tags.push(tag);
+    };
+    const structuredTags = [
+      ...(Array.isArray(target.text_extra) ? target.text_extra : []),
+      ...(Array.isArray(target.textExtra) ? target.textExtra : []),
+      ...(Array.isArray(target.cha_list) ? target.cha_list : []),
+      ...(Array.isArray(target.chaList) ? target.chaList : []),
+      ...(Array.isArray(target.challenges) ? target.challenges : []),
+    ];
+    for (const tag of structuredTags) {
+      addTag(firstString([
+        tag?.hashtag_name,
+        tag?.hashtagName,
+        tag?.cha_name,
+        tag?.chaName,
+        tag?.challenge_name,
+        tag?.challengeName,
+      ]));
+    }
+    if (tags.length === 0 && description) {
+      for (const match of description.matchAll(/#([\p{L}\p{N}_-]+)/gu)) addTag(match[1]);
+    }
+
+    const statistics = [
+      target.statistics,
+      target.stats,
+      target.stats_v2,
+      target.statsV2,
+      target.statistics_info,
+      target.statisticsInfo,
+    ];
+    const engagement = Object.fromEntries([
+      ['likeCount', firstCount(statistics, ['digg_count', 'diggCount', 'like_count', 'likeCount'])],
+      ['favoriteCount', firstCount(statistics, ['collect_count', 'collectCount', 'favorite_count', 'favoriteCount'])],
+      ['commentCount', firstCount(statistics, ['comment_count', 'commentCount'])],
+      ['shareCount', firstCount(statistics, ['share_count', 'shareCount'])],
+    ].filter(([, value]) => value != null));
+
     return {
-      description: typeof target.desc === 'string' ? target.desc : null,
+      title: firstString([
+        target.item_title,
+        target.itemTitle,
+        target.title,
+        target.note_info?.title,
+        target.noteInfo?.title,
+      ]),
+      description,
+      tags,
+      author,
+      engagement: Object.keys(engagement).length > 0 ? engagement : null,
       width: Number(target.video.width ?? 0) || null,
       height: Number(target.video.height ?? 0) || null,
       durationMs: Number(target.video.duration ?? 0) || null,
@@ -306,6 +388,7 @@ export function createDouyinExtractor({
       }
       if (!target) throw codedError('target_metadata_missing', 'Target work is missing from Douyin RENDER_DATA');
       if (!player) throw codedError('target_player_missing', 'No active target video player was found');
+      if (!target.author) throw codedError('target_author_missing', 'Target work is missing author metadata in Douyin RENDER_DATA');
       if (!Array.isArray(target.urls) || target.urls.length === 0) {
         throw codedError('target_media_missing', 'Target work has no usable media URL in Douyin RENDER_DATA');
       }
@@ -315,12 +398,15 @@ export function createDouyinExtractor({
       return {
         schemaVersion: 1,
         source: { site: 'douyin', contentId, canonicalUrl },
+        author: { ...target.author },
         content: {
           kind: 'video',
-          title: typeof page.title === 'function' ? await page.title() : null,
+          ...(target.title ? { title: target.title } : {}),
           description: target.description,
+          tags: [...target.tags],
           duration: player.duration ?? (target.durationMs == null ? null : target.durationMs / 1000),
         },
+        ...(target.engagement ? { engagement: { ...target.engagement } } : {}),
         assets: manifestAssets({ player, requestHeaders, target }),
         evidence: {
           identityRule: 'content-id -> RENDER_DATA target -> target video URLs',

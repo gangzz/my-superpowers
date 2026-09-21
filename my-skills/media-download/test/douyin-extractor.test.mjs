@@ -21,12 +21,86 @@ function fakePage({ contentId, targetUrl }) {
       const source = operation.toString();
       if (source.includes("document.querySelector('#RENDER_DATA')")) {
         return {
-          description: '目标作品',
+          title: '目标作品标题',
+          description: '目标作品完整文案 #AI工具 #效率',
+          tags: ['AI工具', '效率'],
+          author: {
+            id: 'MS4wLjABAAAAfixture',
+            nickname: '目标作者',
+            url: 'https://www.douyin.com/user/MS4wLjABAAAAfixture',
+          },
+          engagement: {
+            likeCount: 1234,
+            favoriteCount: 321,
+            commentCount: 45,
+            shareCount: 67,
+          },
           width: 1080,
           height: 1920,
           durationMs: 12_000,
           urls: [{ field: 'play_addr', url: targetUrl }],
         };
+      }
+      if (source.includes("document.querySelectorAll('video')")) {
+        return {
+          index: 0,
+          width: 1080,
+          height: 1920,
+          duration: 12,
+          currentSrcKind: 'blob',
+          paused: false,
+          readyState: 4,
+        };
+      }
+      if (source.includes('navigator.userAgent')) {
+        return { userAgent: 'Fixture Browser', acceptLanguage: 'zh-CN' };
+      }
+      throw new Error(`unexpected evaluate operation: ${source.slice(0, 80)}`);
+    },
+  };
+}
+
+function rawRenderDataPage({ contentId, targetUrl }) {
+  const target = {
+    aweme_id: contentId,
+    item_title: 'RENDER_DATA 标题',
+    desc: '完整文案 #备用标签',
+    author: {
+      sec_uid: 'MS4wLjABAAAArenderdata',
+      nickname: 'RENDER_DATA 作者',
+    },
+    text_extra: [
+      { hashtag_name: '人工智能' },
+      { hashtag_name: '效率工具' },
+    ],
+    statistics: {
+      digg_count: '4321',
+      collect_count: 210,
+      comment_count: 98,
+      share_count: 76,
+      play_count: 999999,
+    },
+    video: {
+      width: 1080,
+      height: 1920,
+      duration: 12_000,
+      play_addr: { url_list: [targetUrl] },
+    },
+  };
+  return {
+    async goto() { return { status: () => 200 }; },
+    url() { return `https://www.douyin.com/jingxuan?modal_id=${contentId}`; },
+    async waitForTimeout() {},
+    async evaluate(operation, input) {
+      const source = operation.toString();
+      if (source.includes("document.querySelector('#RENDER_DATA')")) {
+        const previousDocument = globalThis.document;
+        globalThis.document = {
+          querySelector: (selector) => (
+            selector === '#RENDER_DATA' ? { textContent: JSON.stringify({ target }) } : null
+          ),
+        };
+        try { return operation(input); } finally { globalThis.document = previousDocument; }
       }
       if (source.includes("document.querySelectorAll('video')")) {
         return {
@@ -106,9 +180,57 @@ test('Extractor 只使用目标 RENDER_DATA 中的资源且运行时不依赖 Ne
 
   assert.equal(manifest.source.contentId, contentId);
   assert.deepEqual(manifest.assets.map(({ id }) => id), ['douyin:render-0001']);
+  assert.deepEqual(manifest.author, {
+    id: 'MS4wLjABAAAAfixture',
+    nickname: '目标作者',
+    url: 'https://www.douyin.com/user/MS4wLjABAAAAfixture',
+  });
+  assert.deepEqual(manifest.content, {
+    kind: 'video',
+    title: '目标作品标题',
+    description: '目标作品完整文案 #AI工具 #效率',
+    tags: ['AI工具', '效率'],
+    duration: 12,
+  });
+  assert.deepEqual(manifest.engagement, {
+    likeCount: 1234,
+    favoriteCount: 321,
+    commentCount: 45,
+    shareCount: 67,
+  });
   assert.equal(manifest.assets[0].access.mode, 'browser-session');
   assert.equal(manifest.assets[0].access.url, targetUrl);
   assert.deepEqual(manifest.assets[0].tracks, { video: true, audio: true });
   assert.equal(manifest.assets[0].isCurrent, undefined);
   assert.equal(manifest.evidence.identityRule, 'content-id -> RENDER_DATA target -> target video URLs');
+});
+
+test('Extractor 从目标 RENDER_DATA 提取作者、完整文案、标签和互动快照但忽略播放量', async () => {
+  const contentId = '7681531359059365171';
+  const targetUrl = 'https://v3.douyinvod.com/video/tos/cn/render-data-key';
+  const extractor = createDouyinExtractor({ discoveryTimeoutMs: 10, pollIntervalMs: 1 });
+  const manifest = await extractor.extract({
+    url: `https://www.douyin.com/jingxuan?modal_id=${contentId}`,
+    page: rawRenderDataPage({ contentId, targetUrl }),
+  });
+
+  assert.deepEqual(manifest.author, {
+    id: 'MS4wLjABAAAArenderdata',
+    nickname: 'RENDER_DATA 作者',
+    url: 'https://www.douyin.com/user/MS4wLjABAAAArenderdata',
+  });
+  assert.deepEqual(manifest.content, {
+    kind: 'video',
+    title: 'RENDER_DATA 标题',
+    description: '完整文案 #备用标签',
+    tags: ['人工智能', '效率工具'],
+    duration: 12,
+  });
+  assert.deepEqual(manifest.engagement, {
+    likeCount: 4321,
+    favoriteCount: 210,
+    commentCount: 98,
+    shareCount: 76,
+  });
+  assert.equal(Object.hasOwn(manifest.engagement, 'playCount'), false);
 });

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
 const JOB_STATUSES = new Set(['queued', 'running', 'succeeded', 'failed']);
@@ -39,6 +39,11 @@ function normalizeExpectedVideo(value) {
   return Object.freeze({ width: value.width, height: value.height });
 }
 
+function normalizeOutputDirectory(value) {
+  if (value == null) return null;
+  return resolve(requiredString(value, 'outputDirectory'));
+}
+
 function ensureColumn(database, table, column, definition) {
   const columns = database.prepare(`PRAGMA table_info(${table})`).all();
   if (!columns.some(({ name }) => name === column)) {
@@ -52,6 +57,7 @@ function mapJob(row) {
     id: row.id,
     url: row.url,
     expectedVideo: parseJson(row.expected_video_json),
+    outputDirectory: row.output_directory,
     status: row.status,
     errorCode: row.error_code,
     errorMessage: row.error_message,
@@ -130,6 +136,7 @@ export function createJobStore({
       id TEXT PRIMARY KEY,
       url TEXT NOT NULL,
       expected_video_json TEXT,
+      output_directory TEXT,
       status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed')),
       error_code TEXT,
       error_message TEXT,
@@ -163,20 +170,30 @@ export function createJobStore({
       ON browser_commands(status, created_at);
   `);
   ensureColumn(database, 'download_jobs', 'expected_video_json', 'TEXT');
+  ensureColumn(database, 'download_jobs', 'output_directory', 'TEXT');
   ensureColumn(database, 'browser_commands', 'url', 'TEXT');
   ensureColumn(database, 'browser_commands', 'purpose', 'TEXT');
   ensureColumn(database, 'browser_commands', 'result_json', 'TEXT');
 
   return Object.freeze({
-    submitDownload({ url, expectedVideo = null } = {}) {
+    submitDownload({ url, expectedVideo = null, outputDirectory = null } = {}) {
       const normalizedUrl = normalizeHttpUrl(url);
       const normalizedExpectedVideo = normalizeExpectedVideo(expectedVideo);
+      const normalizedOutputDirectory = normalizeOutputDirectory(outputDirectory);
       const id = idFactory();
       const timestamp = nowIso(clock);
       database.prepare(`
-        INSERT INTO download_jobs (id, url, expected_video_json, status, created_at, updated_at)
-        VALUES (?, ?, ?, 'queued', ?, ?)
-      `).run(id, normalizedUrl, JSON.stringify(normalizedExpectedVideo), timestamp, timestamp);
+        INSERT INTO download_jobs (
+          id, url, expected_video_json, output_directory, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, 'queued', ?, ?)
+      `).run(
+        id,
+        normalizedUrl,
+        JSON.stringify(normalizedExpectedVideo),
+        normalizedOutputDirectory,
+        timestamp,
+        timestamp,
+      );
       return mapJob(database.prepare('SELECT * FROM download_jobs WHERE id = ?').get(id));
     },
 

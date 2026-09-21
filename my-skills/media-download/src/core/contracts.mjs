@@ -3,6 +3,7 @@ const ASSET_KINDS = new Set(['video', 'audio', 'image']);
 const ACCESS_MODES = new Set(['direct-http', 'browser-session', 'browser-page']);
 const BROWSER_CAPABILITIES = new Set(['no-browser', 'visible-required', 'headless-verified']);
 const ACCESS_STATES = new Set(['ready', 'login_required', 'captcha', 'unavailable']);
+const ENGAGEMENT_FIELDS = new Set(['likeCount', 'favoriteCount', 'commentCount', 'shareCount']);
 
 function requiredString(value, name) {
   if (typeof value !== 'string' || value.trim() === '') throw new TypeError(`${name} is required`);
@@ -12,6 +13,20 @@ function requiredString(value, name) {
 function optionalNumber(value, name) {
   if (value == null) return null;
   if (!Number.isFinite(value) || value < 0) throw new TypeError(`${name} must be a non-negative number`);
+  return value;
+}
+
+function optionalString(value, name) {
+  if (value == null) return null;
+  if (typeof value !== 'string') throw new TypeError(`${name} must be a string`);
+  return value;
+}
+
+function optionalCount(value, name) {
+  if (value == null) return null;
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new TypeError(`${name} must be a non-negative safe integer`);
+  }
   return value;
 }
 
@@ -49,6 +64,29 @@ export function validateManifest(manifest) {
   requiredString(manifest?.source?.contentId, 'manifest.source.contentId');
   requiredString(manifest?.source?.canonicalUrl, 'manifest.source.canonicalUrl');
   if (!CONTENT_KINDS.has(manifest?.content?.kind)) throw new TypeError('manifest.content.kind is invalid');
+  optionalString(manifest.content.title, 'manifest.content.title');
+  optionalString(manifest.content.description, 'manifest.content.description');
+  optionalNumber(manifest.content.duration, 'manifest.content.duration');
+  if (manifest.content.tags != null) {
+    if (!Array.isArray(manifest.content.tags)) throw new TypeError('manifest.content.tags must be an array');
+    for (const [index, tag] of manifest.content.tags.entries()) {
+      requiredString(tag, `manifest.content.tags[${index}]`);
+    }
+  }
+  if (manifest.author != null) {
+    requiredString(manifest.author.id, 'manifest.author.id');
+    requiredString(manifest.author.nickname, 'manifest.author.nickname');
+    requiredString(manifest.author.url, 'manifest.author.url');
+  }
+  if (manifest.engagement != null) {
+    if (typeof manifest.engagement !== 'object' || Array.isArray(manifest.engagement)) {
+      throw new TypeError('manifest.engagement must be an object');
+    }
+    for (const [name, value] of Object.entries(manifest.engagement)) {
+      if (!ENGAGEMENT_FIELDS.has(name)) throw new TypeError(`manifest.engagement.${name} is not supported`);
+      optionalCount(value, `manifest.engagement.${name}`);
+    }
+  }
   if (!Array.isArray(manifest?.assets) || manifest.assets.length === 0) {
     throw new TypeError('manifest.assets must be a non-empty array');
   }
@@ -78,4 +116,5 @@ export const contractValues = Object.freeze({
   accessModes: [...ACCESS_MODES],
   browserCapabilities: [...BROWSER_CAPABILITIES],
   accessStates: [...ACCESS_STATES],
+  engagementFields: [...ENGAGEMENT_FIELDS],
 });

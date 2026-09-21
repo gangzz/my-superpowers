@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createDownloadPlan } from '../src/core/download-plan.mjs';
-import { detectExtractorAccess } from '../src/core/contracts.mjs';
+import { detectExtractorAccess, validateManifest } from '../src/core/contracts.mjs';
 import { createExtractorRegistry } from '../src/core/registry.mjs';
 import { selectAssets } from '../src/core/selector.mjs';
 import { verifyExpectedVideo } from '../src/core/video-verification.mjs';
@@ -104,4 +104,38 @@ test('登录状态由 Extractor 按需检测', async () => {
     detectAccessState: async () => ({ state: 'login_required' }),
   };
   assert.deepEqual(await detectExtractorAccess(loginExtractor, {}), { state: 'login_required' });
+});
+
+test('Manifest 接受作品作者、发布内容和非播放量互动数据', () => {
+  const sourceManifest = manifest('video', [{
+    id: 'combined',
+    kind: 'video',
+    tracks: { video: true, audio: true },
+    access: direct,
+  }]);
+  sourceManifest.author = {
+    id: 'author-one',
+    nickname: '作者',
+    url: 'https://example.test/author/author-one',
+  };
+  sourceManifest.content = {
+    kind: 'video',
+    title: '标题',
+    description: '完整文案',
+    tags: ['AI', '效率'],
+  };
+  sourceManifest.engagement = {
+    likeCount: 12,
+    favoriteCount: 3,
+    commentCount: 4,
+    shareCount: 5,
+  };
+  assert.equal(validateManifest(sourceManifest), sourceManifest);
+  assert.throws(
+    () => validateManifest({
+      ...sourceManifest,
+      engagement: { ...sourceManifest.engagement, playCount: 100 },
+    }),
+    /engagement\.playCount is not supported/,
+  );
 });

@@ -62,7 +62,7 @@ export function createDownloadExecutor({
 } = {}) {
   if (!registry || typeof registry.match !== 'function') throw new TypeError('registry is required');
   if (!outputDirectory) throw new TypeError('outputDirectory is required');
-  const outputRoot = resolve(outputDirectory);
+  const defaultOutputRoot = resolve(outputDirectory);
 
   async function transferAsset({ transfer, page, context, partialPath }) {
     if (transfer.transport === 'BrowserPageTransport') {
@@ -93,6 +93,7 @@ export function createDownloadExecutor({
       }));
       const selection = selectAssets(manifest);
       const plan = createDownloadPlan({ manifest, selection });
+      const outputRoot = resolve(job.outputDirectory ?? defaultOutputRoot);
       mkdirSync(outputRoot, { recursive: true });
       const { finalPath, sourcePath } = allocateOutputPath(outputRoot, manifest.source);
       const finalPartialPath = `${finalPath}.partial`;
@@ -136,9 +137,13 @@ export function createDownloadExecutor({
           BrowserSessionTransport: 'browser-session-range-stream',
           NodeHttpTransport: 'direct-http-stream',
         })[transport] ?? transport))];
+        const { duration: _manifestDuration, ...contentMetadata } = manifest.content;
         const sourceRecord = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           source: { ...manifest.source },
+          ...(manifest.author ? { author: { ...manifest.author } } : {}),
+          content: contentMetadata,
+          ...(manifest.engagement ? { engagement: { ...manifest.engagement } } : {}),
           downloadedAt: new Date(clock()).toISOString(),
           outputFile: basename(finalPath),
           sha256,

@@ -5,7 +5,7 @@ description: 下载用户指定的单个公开媒体作品，通过已注册的�
 
 # 通用媒体下载
 
-用户只需提供一个作品 URL。依次解析 URL、选择匹配的站点 Extractor、生成标准化 `MediaManifest`、应用共享选择策略、传输选中的资源、按需后处理，并在报告成功前验证文件。
+用户必须提供一个作品 URL，也可以为本次任务指定输出目录。依次解析 URL、选择匹配的站点 Extractor、生成标准化 `MediaManifest`、应用共享选择策略、传输选中的资源、按需后处理，并在报告成功前验证文件。
 
 ## 稳定边界
 
@@ -33,11 +33,17 @@ description: 下载用户指定的单个公开媒体作品，通过已注册的�
 
 独立音频、图文、其他站点以及 `direct-http` 目前只有框架契约，没有可发布的端到端实现；不要把它们报告为已支持。
 
-调用者只提交 URL：
+使用默认保存目录时只需提交 URL：
 
 ```sh
 node scripts/submit.mjs 'https://www.douyin.com/jingxuan?modal_id=作品ID'
 node scripts/submit.mjs 'https://www.bilibili.com/video/BV号/'
+```
+
+需要指定本次任务的保存位置时，在提交阶段传入 `--output`；路径会解析为绝对路径并随 `DownloadJob` 持久化，因此同一个 Host 可以连续把不同任务保存到不同目录：
+
+```sh
+node scripts/submit.mjs 'https://www.douyin.com/video/作品ID' --output '/绝对路径/作者/作品'
 ```
 
 `BrowserHost` 顺序处理队列，默认保存到 `~/Downloads`：
@@ -46,7 +52,7 @@ node scripts/submit.mjs 'https://www.bilibili.com/video/BV号/'
 node scripts/host.mjs
 ```
 
-需要指定输出目录时使用 `node scripts/host.mjs --output '/绝对路径'`。成功结果包含视频路径、来源记录、SHA256、大小、时长、尺寸和音轨确认；失败结果保留错误码与错误信息，由调用者决定是否重新提交新 Job。
+没有逐任务目录的 Job 使用 Host 默认目录；`node scripts/host.mjs --output '/绝对路径'` 只覆盖这个回退值，也兼容迁移前的旧 Job。成功结果包含视频路径和同名的 `*.mp4.source.json`；来源记录保存规范作品身份、Extractor 已确认的作者与发布内容、可取得的非播放量互动快照，以及 SHA256、大小、时长、尺寸和音轨确认。`downloadedAt` 同时表示本次互动快照时间，不另建采集时间。失败结果保留错误码与错误信息，由调用者决定是否重新提交新 Job。
 
 修改框架契约前，先读 [docs/architecture.md](docs/architecture.md)。修改或运行站点 Extractor 前，先读 `docs/extractors/` 下的对应文档。
 

@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 
 import { createExtractorRegistry } from '../src/core/registry.mjs';
@@ -17,6 +17,7 @@ import { createDownloadExecutor } from '../src/runtime/download-executor.mjs';
 
 test('执行器只在媒体检查通过后提交正式文件和无敏感 URL 的来源记录', async (t) => {
   const outputDirectory = mkdtempSync(join(tmpdir(), 'download-executor-'));
+  const jobOutputDirectory = join(outputDirectory, 'per-job-output');
   t.after(() => rmSync(outputDirectory, { recursive: true, force: true }));
   const signedUrl = 'https://media.example/target.mp4?token=private';
   const extractor = {
@@ -27,7 +28,21 @@ test('执行器只在媒体检查通过后提交正式文件和无敏感 URL 的
       return {
         schemaVersion: 1,
         source: { site: 'fixture', contentId: 'one', canonicalUrl: 'https://example.test/video/one' },
-        content: { kind: 'video' },
+        author: {
+          id: 'author-one',
+          nickname: '目标作者',
+          url: 'https://example.test/author/author-one',
+        },
+        content: {
+          kind: 'video',
+          title: '目标作品',
+          description: '完整文案',
+          tags: ['标签一', '标签二'],
+        },
+        engagement: {
+          likeCount: 120,
+          favoriteCount: 30,
+        },
         assets: [{
           id: 'combined-current',
           kind: 'video',
@@ -62,16 +77,39 @@ test('执行器只在媒体检查通过后提交正式文件和无敏感 URL 的
     clock: () => 0,
   });
   const result = await executor.executeDownload({
-    job: { url: 'https://example.test/video/one', expectedVideo: { width: 1080, height: 1920 } },
+    job: {
+      url: 'https://example.test/video/one',
+      expectedVideo: { width: 1080, height: 1920 },
+      outputDirectory: jobOutputDirectory,
+    },
     page: {},
   });
 
   assert.equal(existsSync(result.outputPath), true);
+  assert.equal(dirname(result.outputPath), jobOutputDirectory);
   assert.equal(existsSync(`${result.outputPath}.partial`), false);
-  const source = readFileSync(result.sourcePath, 'utf8');
-  assert.equal(source.includes('private'), false);
-  assert.equal(source.includes(signedUrl), false);
-  assert.deepEqual(JSON.parse(source).access.transports, ['browser-page-stream']);
+  const sourceText = readFileSync(result.sourcePath, 'utf8');
+  assert.equal(sourceText.includes('private'), false);
+  assert.equal(sourceText.includes(signedUrl), false);
+  const source = JSON.parse(sourceText);
+  assert.equal(source.schemaVersion, 2);
+  assert.equal(source.downloadedAt, '1970-01-01T00:00:00.000Z');
+  assert.deepEqual(source.author, {
+    id: 'author-one',
+    nickname: '目标作者',
+    url: 'https://example.test/author/author-one',
+  });
+  assert.deepEqual(source.content, {
+    kind: 'video',
+    title: '目标作品',
+    description: '完整文案',
+    tags: ['标签一', '标签二'],
+  });
+  assert.deepEqual(source.engagement, {
+    likeCount: 120,
+    favoriteCount: 30,
+  });
+  assert.deepEqual(source.access.transports, ['browser-page-stream']);
 });
 
 test('来源记录提交失败时回滚已经改名的媒体文件', async (t) => {

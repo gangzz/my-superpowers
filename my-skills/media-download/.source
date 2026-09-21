@@ -1,4 +1,4 @@
 source=original
 commit=none
-summary=原创通用媒体下载 Skill，生产支持抖音 RENDER_DATA 与 B 站 playurl DASH 发现，NetworkProbe 仅用于开发和修复
+summary=原创通用媒体下载 Skill，支持逐任务输出目录、抖音 RENDER_DATA 与 B 站 playurl DASH 发现，并把作品、作者与可用互动信息写入媒体来源记录
 targets=codex
