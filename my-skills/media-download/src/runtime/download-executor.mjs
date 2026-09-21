@@ -155,7 +155,10 @@ export function createDownloadExecutor({
             postprocess: [...selection.postprocess],
             policy: { ...selection.policy },
           },
-          access: { discovery: 'browser-page-render-data', transports: transportNames },
+          access: {
+            discovery: manifest.evidence?.discovery ?? 'browser-page',
+            transports: transportNames,
+          },
         };
         const sourcePartialPath = `${sourcePath}.partial`;
         temporaryPaths.push(sourcePartialPath);

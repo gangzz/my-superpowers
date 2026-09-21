@@ -81,6 +81,89 @@ async function streamResponse({ response, writer, maximumBytes, bytesWritten }) 
   return received;
 }
 
+async function transferFromUrl({
+  context,
+  page,
+  access,
+  mediaUrl,
+  partialPath,
+  fetchImpl,
+  maxBytes,
+  requestBytes,
+}) {
+  const cookies = await context.cookies(mediaUrl);
+  const cookie = cookies.map(({ name, value }) => `${name}=${value}`).join('; ');
+  const referer = access.requestHeaders?.referer
+    ?? (typeof page?.url === 'function' ? page.url() : null);
+  const writer = await openExclusiveWriteStream(partialPath);
+  let writerFailure = null;
+  let completed = false;
+  let bytesWritten = 0;
+  let offset = 0;
+  let requests = 0;
+  writer.on('error', (error) => { writerFailure = error; });
+
+  try {
+    while (true) {
+      const rangeEnd = Math.min(offset + requestBytes - 1, maxBytes - 1);
+      const range = `bytes=${offset}-${rangeEnd}`;
+      const response = await fetchImpl(mediaUrl, {
+        method: 'GET',
+        redirect: 'follow',
+        headers: safeSessionHeaders(access.requestHeaders, { cookie, referer, range }),
+      });
+      requests += 1;
+      if (response.status !== 200 && response.status !== 206) {
+        throw codedError('media_http_error', `Media fetch returned HTTP ${response.status}`, { status: response.status });
+      }
+      if (writerFailure) throw writerFailure;
+
+      if (response.status === 200) {
+        if (offset !== 0) throw codedError('media_range_ignored', 'Media server stopped honoring Range requests');
+        const declared = Number(response.headers.get('content-length') ?? 0) || null;
+        if (declared != null && declared > maxBytes) {
+          throw codedError('media_too_large', `Media exceeds ${maxBytes} bytes`);
+        }
+        const received = await streamResponse({ response, writer, maximumBytes: maxBytes, bytesWritten });
+        bytesWritten += received;
+        if (declared != null && received !== declared) {
+          throw codedError('media_size_mismatch', `Expected ${declared} bytes, received ${received}`);
+        }
+        break;
+      }
+
+      const contentRange = parseContentRange(response.headers.get('content-range'));
+      if (!contentRange || contentRange.start !== offset || contentRange.total > maxBytes) {
+        throw codedError('media_range_invalid', 'Media server returned an invalid Content-Range');
+      }
+      const expected = contentRange.end - contentRange.start + 1;
+      const received = await streamResponse({ response, writer, maximumBytes: maxBytes, bytesWritten });
+      if (received !== expected) {
+        throw codedError('media_size_mismatch', `Expected range of ${expected} bytes, received ${received}`);
+      }
+      bytesWritten += received;
+      offset = contentRange.end + 1;
+      if (offset >= contentRange.total) break;
+    }
+
+    writer.end();
+    await finished(writer);
+    if (writerFailure) throw writerFailure;
+    if (bytesWritten === 0) throw codedError('media_empty', 'Media response was empty');
+    completed = true;
+    return Object.freeze({ partialPath, bytes: bytesWritten, requests });
+  } catch (error) {
+    error.requests = requests;
+    if (!writer.destroyed) writer.destroy();
+    await finished(writer).catch(() => {});
+    throw error;
+  } finally {
+    if (!completed) {
+      try { unlinkSync(partialPath); } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    }
+  }
+}
+
 export class BrowserSessionTransport {
   constructor({
     maxBytes = 2 * 1024 * 1024 * 1024,
@@ -98,76 +181,27 @@ export class BrowserSessionTransport {
     if (access?.mode !== 'browser-session') throw new TypeError('access.mode must be browser-session');
     if (typeof partialPath !== 'string' || partialPath.trim() === '') throw new TypeError('partialPath is required');
 
-    const mediaUrl = httpUrl(access.url);
-    const cookies = await context.cookies(mediaUrl);
-    const cookie = cookies.map(({ name, value }) => `${name}=${value}`).join('; ');
-    const referer = access.requestHeaders?.referer
-      ?? (typeof page?.url === 'function' ? page.url() : null);
-    const writer = await openExclusiveWriteStream(partialPath);
-    let writerFailure = null;
-    let completed = false;
-    let bytesWritten = 0;
-    let offset = 0;
-    let requests = 0;
-    writer.on('error', (error) => { writerFailure = error; });
-
-    try {
-      while (true) {
-        const rangeEnd = Math.min(offset + this.requestBytes - 1, this.maxBytes - 1);
-        const range = `bytes=${offset}-${rangeEnd}`;
-        const response = await this.fetch(mediaUrl, {
-          method: 'GET',
-          redirect: 'follow',
-          headers: safeSessionHeaders(access.requestHeaders, { cookie, referer, range }),
+    const mediaUrls = [...new Set([access.url, ...(access.fallbackUrls ?? [])].map(httpUrl))];
+    let totalRequests = 0;
+    let lastError = null;
+    for (const mediaUrl of mediaUrls) {
+      try {
+        const result = await transferFromUrl({
+          context,
+          page,
+          access,
+          mediaUrl,
+          partialPath,
+          fetchImpl: this.fetch,
+          maxBytes: this.maxBytes,
+          requestBytes: this.requestBytes,
         });
-        requests += 1;
-        if (response.status !== 200 && response.status !== 206) {
-          throw codedError('media_http_error', `Media fetch returned HTTP ${response.status}`, { status: response.status });
-        }
-        if (writerFailure) throw writerFailure;
-
-        if (response.status === 200) {
-          if (offset !== 0) throw codedError('media_range_ignored', 'Media server stopped honoring Range requests');
-          const declared = Number(response.headers.get('content-length') ?? 0) || null;
-          if (declared != null && declared > this.maxBytes) {
-            throw codedError('media_too_large', `Media exceeds ${this.maxBytes} bytes`);
-          }
-          const received = await streamResponse({ response, writer, maximumBytes: this.maxBytes, bytesWritten });
-          bytesWritten += received;
-          if (declared != null && received !== declared) {
-            throw codedError('media_size_mismatch', `Expected ${declared} bytes, received ${received}`);
-          }
-          break;
-        }
-
-        const contentRange = parseContentRange(response.headers.get('content-range'));
-        if (!contentRange || contentRange.start !== offset || contentRange.total > this.maxBytes) {
-          throw codedError('media_range_invalid', 'Media server returned an invalid Content-Range');
-        }
-        const expected = contentRange.end - contentRange.start + 1;
-        const received = await streamResponse({ response, writer, maximumBytes: this.maxBytes, bytesWritten });
-        if (received !== expected) {
-          throw codedError('media_size_mismatch', `Expected range of ${expected} bytes, received ${received}`);
-        }
-        bytesWritten += received;
-        offset = contentRange.end + 1;
-        if (offset >= contentRange.total) break;
-      }
-
-      writer.end();
-      await finished(writer);
-      if (writerFailure) throw writerFailure;
-      if (bytesWritten === 0) throw codedError('media_empty', 'Media response was empty');
-      completed = true;
-      return Object.freeze({ partialPath, bytes: bytesWritten, requests });
-    } catch (error) {
-      if (!writer.destroyed) writer.destroy();
-      await finished(writer).catch(() => {});
-      throw error;
-    } finally {
-      if (!completed) {
-        try { unlinkSync(partialPath); } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+        return Object.freeze({ ...result, requests: totalRequests + result.requests });
+      } catch (error) {
+        totalRequests += error?.requests ?? 0;
+        lastError = error;
       }
     }
+    throw lastError ?? codedError('media_sources_empty', 'Media access has no usable URL');
   }
 }

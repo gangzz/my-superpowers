@@ -76,6 +76,6 @@ npm run skill:install -- <skill-name>...
 
 - [`using-superpowers`](./my-skills/using-superpowers/)：自动进行克制的 Skill 检查，只在收益明确时建议，并保留用户对实际调用的决定权。
 - [`brainstorming`](./my-skills/brainstorming/)：通过克制的澄清和方案比较，把想法收敛为可执行的设计决策。
-- [`media-download`](./my-skills/media-download/)：下载并验证用户指定的单个公开媒体作品；当前生产支持抖音公开视频。
+- [`media-download`](./my-skills/media-download/)：下载并验证用户指定的单个公开媒体作品；当前生产支持抖音和 B 站公开视频。
 
 具体行为、调用方式和发布信息请进入对应 Skill 目录查看，不在本页重复维护。

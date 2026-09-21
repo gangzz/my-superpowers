@@ -90,7 +90,7 @@ page fetch response.body
 
 页面每次只把一个有限大小的 chunk 编码后传给 Node，并等待 Node 确认。Node 写流触发背压时，binding 不返回，页面因此暂停继续读取。传输同时限制响应声明大小和实际写入大小；失败时只删除本次拥有的 `.partial` 文件。原始媒体 URL 和请求材料不写入来源记录。
 
-`BrowserSessionTransport` 从当前 `BrowserContext` 读取目标域 Cookie，并使用 Extractor 从当前页面取得的 User-Agent、Accept、语言和 Referer。它用有限大小的连续 Range 请求覆盖完整资源，每个响应块直接进入同一个 Node 写流；每段校验 `Content-Range`，最后再校验媒体文件。它用于页面脚本因 CDN CORS 不能重新 Fetch、但浏览器会话材料足以访问的资源。
+`BrowserSessionTransport` 从当前 `BrowserContext` 读取目标域 Cookie，并使用 Extractor 从当前页面取得的 User-Agent、Accept、语言和 Referer。它用有限大小的连续 Range 请求覆盖完整资源，每个响应块直接进入同一个 Node 写流；每段校验 `Content-Range`，最后再校验媒体文件。Extractor 可以按站点响应提供同一轨道的有序备用地址；一个地址失败后，Transport 删除该次 partial 并从字节 0 改用下一个地址。它用于页面脚本因 CDN CORS 不能重新 Fetch、但浏览器会话材料足以访问的资源。
 
 ## 访问状态
 

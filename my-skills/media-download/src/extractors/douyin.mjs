@@ -324,6 +324,7 @@ export function createDouyinExtractor({
         assets: manifestAssets({ player, requestHeaders, target }),
         evidence: {
           identityRule: 'content-id -> RENDER_DATA target -> target video URLs',
+          discovery: 'browser-page-render-data',
           player: { ...player },
         },
       };

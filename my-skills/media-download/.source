@@ -1,4 +1,4 @@
 source=original
 commit=none
-summary=原创通用媒体下载 Skill，抖音生产链路直接读取目标 RENDER_DATA，NetworkProbe 仅用于开发和修复
+summary=原创通用媒体下载 Skill，生产支持抖音 RENDER_DATA 与 B 站 playurl DASH 发现，NetworkProbe 仅用于开发和修复
 targets=codex

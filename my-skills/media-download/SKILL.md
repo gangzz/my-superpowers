@@ -1,6 +1,6 @@
 ---
 name: media-download
-description: 下载用户指定的单个公开媒体作品，通过已注册的站点 Extractor 发现资源、选择可用版本、验证本地文件并保存来源记录。当前生产支持抖音公开视频；不用于账号批量采集、信息流、搜索结果采集、直播或直接转写。
+description: 下载用户指定的单个公开媒体作品，通过已注册的站点 Extractor 发现资源、选择可用版本、验证本地文件并保存来源记录。当前生产支持抖音和 B 站公开视频；不用于账号批量采集、信息流、搜索结果采集、直播或直接转写。
 ---
 
 # 通用媒体下载
@@ -24,14 +24,20 @@ description: 下载用户指定的单个公开媒体作品，通过已注册的�
 
 ## 当前支持与运行
 
-当前生产 Extractor 支持用户指定的单个抖音公开视频长链接、带 `modal_id` 的作品链接，以及最终能跳转到单作品页的抖音短链。它按作品 ID 定位目标 `RENDER_DATA` 对象，直接从该对象生成资源候选；正式下载不监听页面网络。抖音资源统一使用当前 Context 会话材料的 `browser-session` Range 流传输，避开页面脚本对 CDN 资源重新 Fetch 的限制。
+当前生产 Extractor 支持以下入口：
 
-音频、图文、其他站点以及 `direct-http` 目前只有框架契约，没有可发布的端到端实现；不要把它们报告为已支持。
+- 抖音：单个公开视频长链接、带 `modal_id` 的作品链接，以及最终能跳转到单作品页的抖音短链。Extractor 按作品 ID 定位目标 `RENDER_DATA` 对象，直接从该对象生成资源候选；正式下载不监听页面网络。
+- B 站：`www.bilibili.com/video/<BV号>/` 和等价的 `m.bilibili.com` 单个公开视频链接。Extractor 优先使用页面自身发出的目标 `playurl` 响应；共享 Context 后续页面不再发出该响应时，通过页面会话显式调用公开 `view` 与 `player/playurl` 接口，并再次校验 BV 号、分 P CID 和 DASH 轨道。它不导入或接收开发期 NetworkProbe。
+
+两站资源都使用当前 Context 会话材料的 `browser-session` Range 流传输。B 站 DASH 轨道按主地址、备用 CDN 顺序回退，选中的视频轨和音频轨由共享后处理器无损封装为 MP4。
+
+独立音频、图文、其他站点以及 `direct-http` 目前只有框架契约，没有可发布的端到端实现；不要把它们报告为已支持。
 
 调用者只提交 URL：
 
 ```sh
 node scripts/submit.mjs 'https://www.douyin.com/jingxuan?modal_id=作品ID'
+node scripts/submit.mjs 'https://www.bilibili.com/video/BV号/'
 ```
 
 `BrowserHost` 顺序处理队列，默认保存到 `~/Downloads`：

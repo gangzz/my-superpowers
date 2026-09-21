@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { createExtractorRegistry } from '../core/registry.mjs';
+import { bilibiliExtractor } from '../extractors/bilibili.mjs';
 import { douyinExtractor } from '../extractors/douyin.mjs';
 import { BrowserHost } from './browser-host.mjs';
 import { BrowserSession } from './browser-session.mjs';
@@ -21,7 +22,7 @@ export function createDefaultMediaDownloadRuntime({
   outputDirectory = join(homedir(), 'Downloads'),
   executablePath = defaultChromePath(),
   launchOptions = { viewport: { width: 1440, height: 960 } },
-  extractors = [douyinExtractor],
+  extractors = [douyinExtractor, bilibiliExtractor],
 } = {}) {
   const paths = runtimePaths(stateRoot);
   const registry = createExtractorRegistry(extractors);

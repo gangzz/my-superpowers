@@ -35,3 +35,11 @@
 - 新站点优先复用现有契约并新增 Extractor 和决策记录。
 - 开发期可以使用 `src/dev/network-probe.mjs` 观察和验证站点事实；生产 Extractor 不得导入或接收 Probe。
 - 跨站点证据表明抽象缺口时，扩展核心契约。
+
+## 阶段 7：B 站 Extractor
+
+- 已实现标准 BV 视频页匹配，并用目标 BV 号约束页面自身的 `x/player/wbi/playurl` 响应。
+- 已处理共享 Context 的站点缓存行为：后续页面不再产生 `playurl` 网络事件时，通过页面会话显式调用公开接口，并按 `p` 绑定目标 CID。
+- 已将 DASH 视频轨与音频轨映射为标准 Manifest，由共享 Selector 选择当前清晰度，由共享后处理器无损封装。
+- 已为 `browser-session` 增加同一轨道的主地址与备用 CDN 顺序回退，失败地址留下的 partial 会先清理再从头传输。
+- 已用 `BV1nLYh6uEH8` 完成端到端验证：最终 MP4 为 `45,138,649` 字节、`640×480`、AV1 + AAC、时长 `1119.643016` 秒，并通过 SHA256 检查。

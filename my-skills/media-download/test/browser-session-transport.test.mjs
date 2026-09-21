@@ -66,3 +66,42 @@ test('BrowserSessionTransport 拒绝超过上限的 Content-Range 并清理 part
   );
   assert.equal(existsSync(partialPath), false);
 });
+
+test('BrowserSessionTransport 在主 CDN 失败后从头改用备用地址', async (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'browser-session-transport-fallback-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const partialPath = join(root, 'video.m4s.partial');
+  const body = Buffer.from('fallback-media');
+  const requested = [];
+  const transport = new BrowserSessionTransport({
+    maxBytes: 64,
+    requestBytes: 64,
+    async fetchImpl(url) {
+      requested.push(url);
+      if (url.includes('primary.example')) return new Response('unavailable', { status: 503 });
+      return new Response(body, {
+        status: 206,
+        headers: { 'content-range': `bytes 0-${body.byteLength - 1}/${body.byteLength}` },
+      });
+    },
+  });
+
+  const result = await transport.transfer({
+    context: { async cookies() { return []; } },
+    page: { url: () => 'https://www.bilibili.com/video/BV1nLYh6uEH8/' },
+    access: {
+      mode: 'browser-session',
+      url: 'https://primary.example/video.m4s?token=private',
+      fallbackUrls: ['https://backup.example/video.m4s?token=private'],
+      requestHeaders: { 'user-agent': 'Fixture Browser' },
+    },
+    partialPath,
+  });
+
+  assert.deepEqual(requested, [
+    'https://primary.example/video.m4s?token=private',
+    'https://backup.example/video.m4s?token=private',
+  ]);
+  assert.equal(readFileSync(partialPath, 'utf8'), body.toString('utf8'));
+  assert.equal(result.requests, 2);
+});

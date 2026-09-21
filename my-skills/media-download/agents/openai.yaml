@@ -1,6 +1,6 @@
 interface:
   display_name: "通用媒体下载"
-  short_description: "下载、选择并验证用户指定的单个抖音公开视频"
-  default_prompt: "使用 $media-download 下载这个抖音公开作品链接，验证本地文件并保存来源记录。"
+  short_description: "下载、选择并验证用户指定的单个抖音或 B 站公开视频"
+  default_prompt: "使用 $media-download 下载这个抖音或 B 站公开作品链接，验证本地文件并保存来源记录。"
 policy:
   allow_implicit_invocation: false
