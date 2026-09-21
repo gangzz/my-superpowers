@@ -23,10 +23,10 @@
 
 ```bash
 npm run skills:list
-npm run skill:install -- <skill-name>
+npm run skill:install -- <skill-name>...
 ```
 
-第一个命令查看本机已发布的 Skill，第二个命令验证并安装指定 Skill。日常使用只安装 `published-skills/` 中的本机稳定快照，不直接使用开发目录。
+第一个命令查看全部 Skill 的草稿、发布快照和平台安装状态。第二个命令逐个验证一个或多个开发版，生成或刷新 `published-skills/` 中的本机稳定快照，再安装指定 Skill；日常使用不直接安装开发目录。
 
 Skill 默认由用户明确调用。Agent 只有在能说明具体问题、预期收益和主要成本时才可以建议；建议不等于调用。单个 Skill 如有经过授权的例外，以其 `SKILL.md` 和平台配置为准。
 
@@ -39,8 +39,8 @@ my-superpowers/
 ├── README.md                       # 项目说明和使用入口
 ├── AGENTS.md                       # Agent 维护本仓库时必须遵守的规则
 ├── CLAUDE.md -> AGENTS.md          # Claude Code 共用同一套规则
-├── package.json                    # 查看、发布、安装和更新上游的命令
-├── scripts/skills.mjs              # Skill 列表、发布与安装脚本
+├── package.json                    # 查看、安装和更新上游的命令
+├── scripts/skills.mjs              # Skill 状态、快照生成与安装脚本
 ├── my-skills/
 │   ├── <skill-name>/               # 开发和调试中的个人 Skill
 │   └── decisions/
@@ -51,24 +51,23 @@ my-superpowers/
     └── superpowers/                # 独立的上游 Git 仓库，已被忽略
 ```
 
-## 开发与发布
+## 开发与安装
 
 ```bash
 npm run upstream:update
-npm run skill:publish -- <skill-name>
+npm run skill:install -- <skill-name>...
 ```
 
 - `upstream:update`：以 fast-forward 方式更新 Superpowers 上游仓库。
-- `skill:publish`：展示开发版与发布版差异，确认后复制运行文件、更新发布元数据并验证发布结果。
+- `skill:install`：逐个展示开发版与发布快照差异、验证开发版、生成或刷新发布快照，再安装到各自 `.source` 指定的平台。使用 `--dry-run` 可以只验证和预览整批 Skill。
 
-具体维护规则由 [`AGENTS.md`](./AGENTS.md) 约束。以上命令都不会自动安装、提交或推送 Git。
+具体维护规则由 [`AGENTS.md`](./AGENTS.md) 约束。以上命令不会自动提交或推送 Git。
 
 `published-skills/` 不上传。换电脑时只同步 Git 中的源码，然后在新电脑本地执行：
 
 ```bash
 git pull
-npm run skill:publish -- <skill-name>
-npm run skill:install -- <skill-name>
+npm run skill:install -- <skill-name>...
 ```
 
 不同电脑的本机日期版本可能不同；运行内容是否一致以 `.release` 的 `content_sha256` 为准。安装目标由开发版 `.source` 中的 `targets` 重建。

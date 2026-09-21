@@ -1,11 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { cp, lstat, mkdir, readFile, readdir, realpath, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, readdir, readlink, realpath, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -54,7 +53,9 @@ async function readKeyValues(file) {
 async function readDescription(skillDirectory) {
   const content = await readFile(path.join(skillDirectory, "SKILL.md"), "utf8");
   const match = content.match(/^description:\s*["']?(.+?)["']?\s*$/m);
-  return match?.[1]?.replace(/[\r\n=]+/g, " ").trim() ?? "";
+  const description = match?.[1]?.replace(/[\r\n=]+/g, " ").trim() ?? "";
+  const firstSentence = description.match(/^.*?(?:[。！？]|[.!?](?=\s|$))/u);
+  return firstSentence?.[0].trim() ?? description;
 }
 
 async function validate(skillDirectory) {
@@ -116,19 +117,113 @@ function publishedAt() {
   return `${year}-${month}-${day}T${hour}:${minute}:${second}+0800`;
 }
 
-async function listSkills() {
-  if (!existsSync(publishedRoot)) return;
-  const entries = await readdir(publishedRoot, { withFileTypes: true });
-  for (const entry of entries.filter((item) => item.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
-    const directory = path.join(publishedRoot, entry.name);
-    if (!existsSync(path.join(directory, "SKILL.md"))) continue;
-    console.log(`${entry.name}\t${await readDescription(directory)}`);
+async function skillNames(directory) {
+  if (!existsSync(directory)) return [];
+  const entries = await readdir(directory, { withFileTypes: true });
+  return entries
+    .filter((entry) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.name))
+    .filter((entry) => entry.isDirectory() && existsSync(path.join(directory, entry.name, "SKILL.md")))
+    .map((entry) => entry.name);
+}
+
+async function managedInstallationNames() {
+  const names = new Set();
+  for (const installationRoot of Object.values(installationRoots)) {
+    if (!existsSync(installationRoot)) continue;
+    for (const entry of await readdir(installationRoot, { withFileTypes: true })) {
+      if (!entry.isSymbolicLink()) continue;
+      const destination = path.join(installationRoot, entry.name);
+      const target = path.resolve(path.dirname(destination), await readlink(destination));
+      const relative = path.relative(publishedRoot, target);
+      if (relative && !relative.startsWith("..") && !path.isAbsolute(relative) && !relative.includes(path.sep)) {
+        names.add(entry.name);
+      }
+    }
   }
+  return names;
+}
+
+async function installationStatus(name, target) {
+  const destination = path.join(installationRoots[target], name);
+  const existing = await lstat(destination).catch((error) => {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  });
+  if (!existing) return null;
+  if (!existing.isSymbolicLink()) return `${target}:conflict`;
+
+  const linked = path.resolve(path.dirname(destination), await readlink(destination));
+  const published = path.join(publishedRoot, name);
+  if (linked !== published) return `${target}:conflict`;
+  return existsSync(path.join(published, "SKILL.md")) ? target : `${target}:broken`;
+}
+
+async function listSkills() {
+  const names = new Set([
+    ...await skillNames(developmentRoot),
+    ...await skillNames(publishedRoot),
+    ...await managedInstallationNames(),
+  ]);
+
+  const sortedNames = [...names].sort((a, b) => a.localeCompare(b));
+  const rows = [];
+  for (const name of sortedNames) {
+    const development = path.join(developmentRoot, name);
+    const published = path.join(publishedRoot, name);
+    const hasDevelopment = existsSync(path.join(development, "SKILL.md"));
+    const hasPublished = existsSync(path.join(published, "SKILL.md"));
+    const release = hasPublished ? await readKeyValues(path.join(published, ".release")) : {};
+
+    let draft = "-";
+    if (hasDevelopment && !hasPublished) draft = "new";
+    else if (!hasDevelopment && hasPublished) draft = "source-missing";
+    else if (hasDevelopment && hasPublished) {
+      const developmentHash = await contentHash(development);
+      const publishedHash = await contentHash(published);
+      if (developmentHash !== publishedHash || release.content_sha256 !== publishedHash) draft = "changed";
+    }
+
+    const installed = (await Promise.all(
+      Object.keys(installationRoots).map((target) => installationStatus(name, target)),
+    )).filter(Boolean);
+    const descriptionDirectory = hasDevelopment ? development : published;
+    const description = existsSync(path.join(descriptionDirectory, "SKILL.md"))
+      ? await readDescription(descriptionDirectory)
+      : "";
+    const publishedVersion = hasPublished ? release.version ?? "invalid" : "-";
+    rows.push({
+      skill: name,
+      draft,
+      published: publishedVersion,
+      installed: installed.join(", ") || "-",
+      description,
+    });
+  }
+
+  const headers = {
+    skill: "SKILL",
+    draft: "DRAFT",
+    published: "PUBLISHED",
+    installed: "INSTALLED",
+    description: "DESCRIPTION",
+  };
+  const keys = ["skill", "draft", "published", "installed"];
+  const widths = Object.fromEntries(keys.map((key) => [
+    key,
+    Math.max(headers[key].length, ...rows.map((row) => row[key].length)),
+  ]));
+  const formatColumns = (row) => keys
+    .map((key) => row[key].padEnd(widths[key]))
+    .join("   ");
+
+  console.log(`${formatColumns(headers)}   ${headers.description}`);
+  console.log(`${keys.map((key) => "-".repeat(widths[key])).join("   ")}   ${"-".repeat(headers.description.length)}`);
+  for (const row of rows) console.log(`${formatColumns(row)}   ${row.description}`);
 }
 
 function showDiff(development, published) {
   if (!existsSync(published)) {
-    console.log(`首次发布：${path.relative(root, development)} -> ${path.relative(root, published)}`);
+    console.log(`首次生成发布快照：${path.relative(root, development)} -> ${path.relative(root, published)}`);
     return true;
   }
   const result = spawnSync("diff", [
@@ -153,60 +248,65 @@ function showDiff(development, published) {
 async function copyRuntimeFiles(source, destination) {
   await cp(source, destination, {
     recursive: true,
-    filter: (current) => ![".source", ".DS_Store", "node_modules"].includes(path.basename(current)),
+    filter: (current) => ![".source", ".release", ".DS_Store", "node_modules"].includes(path.basename(current)),
   });
 }
 
 function prepareRuntimeDependencies(published) {
   const packageFile = path.join(published, "package.json");
-  const lockFile = path.join(published, "package-lock.json");
-  if (!existsSync(packageFile) && !existsSync(lockFile)) return;
-  if (!existsSync(packageFile) || !existsSync(lockFile)) {
-    fail(`${path.relative(root, published)} 必须同时包含 package.json 和 package-lock.json。`);
+  const npmLockFile = path.join(published, "package-lock.json");
+  const pnpmLockFile = path.join(published, "pnpm-lock.yaml");
+  const hasPackage = existsSync(packageFile);
+  const hasNpmLock = existsSync(npmLockFile);
+  const hasPnpmLock = existsSync(pnpmLockFile);
+  if (!hasPackage && !hasNpmLock && !hasPnpmLock) return;
+  if (!hasPackage || hasNpmLock === hasPnpmLock) {
+    fail(`${path.relative(root, published)} 必须包含 package.json，且只能包含一种受支持的锁文件：package-lock.json 或 pnpm-lock.yaml。`);
   }
-  const status = run("npm", ["ci", "--omit=dev", "--prefix", published]);
+
+  const status = hasNpmLock
+    ? run("npm", ["ci", "--omit=dev", "--prefix", published])
+    : run("pnpm", ["--dir", published, "install", "--prod", "--frozen-lockfile"]);
   if (status !== 0) fail(`${path.relative(root, published)} 运行依赖准备失败。`);
 }
 
-async function publishSkill(name, flags) {
-  assertSkillName(name);
+async function preparePublishedSkill(name) {
   const development = path.join(developmentRoot, name);
   const published = path.join(publishedRoot, name);
   await validate(development);
-  if (!showDiff(development, published)) return;
+  const contentChanged = showDiff(development, published);
 
-  if (flags.has("--dry-run")) {
-    console.log("预览完成，未发布。");
-    return;
-  }
-
-  if (!flags.has("--yes")) {
-    const prompt = createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await prompt.question(`确认发布 ${name}？输入 yes 继续：`);
-    prompt.close();
-    if (answer.trim().toLowerCase() !== "yes") {
-      console.log("已取消，未发布。");
-      return;
-    }
-  }
+  const previousRelease = await readKeyValues(path.join(published, ".release"));
+  const source = await readKeyValues(path.join(development, ".source"));
+  const expectedMetadata = {
+    source: `my-skills/${name}`,
+    upstream_source: source.source ?? "original",
+    upstream_commit: source.commit ?? "none",
+    content_summary: await readDescription(development),
+    targets: source.targets ?? previousRelease.targets ?? "codex",
+  };
+  const publishedHash = existsSync(published) ? await contentHash(published) : "";
+  const metadataChanged = !previousRelease.version
+    || previousRelease.content_sha256 !== publishedHash
+    || Object.entries(expectedMetadata).some(([key, value]) => previousRelease[key] !== value);
+  if (!contentChanged && !metadataChanged) return published;
+  if (!contentChanged && metadataChanged) console.log("运行内容未变化，发布元数据需要刷新。");
 
   await mkdir(publishedRoot, { recursive: true });
   const staging = path.join(publishedRoot, `.staging-${name}-${randomUUID()}`);
   const backup = path.join(publishedRoot, `.backup-${name}-${randomUUID()}`);
-  const previousRelease = await readKeyValues(path.join(published, ".release"));
-  const source = await readKeyValues(path.join(development, ".source"));
 
   try {
     await copyRuntimeFiles(development, staging);
     const release = [
       `version=${nextVersion(previousRelease.version)}`,
-      `source=my-skills/${name}`,
-      `upstream_source=${source.source ?? "original"}`,
-      `upstream_commit=${source.commit ?? "none"}`,
+      `source=${expectedMetadata.source}`,
+      `upstream_source=${expectedMetadata.upstream_source}`,
+      `upstream_commit=${expectedMetadata.upstream_commit}`,
       `content_sha256=${await contentHash(staging)}`,
-      `content_summary=${await readDescription(staging)}`,
+      `content_summary=${expectedMetadata.content_summary}`,
       `published_at=${publishedAt()}`,
-      `targets=${source.targets ?? previousRelease.targets ?? "codex"}`,
+      `targets=${expectedMetadata.targets}`,
       "",
     ].join("\n");
     await writeFile(path.join(staging, ".release"), release, "utf8");
@@ -220,10 +320,11 @@ async function publishSkill(name, flags) {
       throw error;
     }
     if (existsSync(backup)) await rm(backup, { recursive: true });
-    console.log(`已发布 ${name}：${release.split("\n", 1)[0].slice("version=".length)}`);
+    console.log(`已生成发布快照 ${name}：${release.split("\n", 1)[0].slice("version=".length)}`);
   } finally {
     if (existsSync(staging)) await rm(staging, { recursive: true });
   }
+  return published;
 }
 
 function readOption(argv, option) {
@@ -272,8 +373,15 @@ async function installTarget(name, published, target) {
 
 async function installSkill(name, argv) {
   assertSkillName(name);
-  const published = path.join(publishedRoot, name);
-  await validate(published);
+  const development = path.join(developmentRoot, name);
+  if (argv.includes("--dry-run")) {
+    await validate(development);
+    showDiff(development, path.join(publishedRoot, name));
+    console.log("预览完成，未生成发布快照，也未安装。");
+    return;
+  }
+
+  const published = await preparePublishedSkill(name);
   const release = await readKeyValues(path.join(published, ".release"));
   prepareRuntimeDependencies(published);
   for (const target of resolveTargets(release.targets, argv)) {
@@ -281,20 +389,38 @@ async function installSkill(name, argv) {
   }
 }
 
-const [command, name, ...rest] = process.argv.slice(2);
-const flags = new Set(rest);
+function installSkillNames(argv) {
+  const names = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument === "--dry-run" || argument.startsWith("--target=")) continue;
+    if (argument === "--target") {
+      index += 1;
+      if (!argv[index] || argv[index].startsWith("--")) fail("--target 需要一个值。");
+      continue;
+    }
+    if (argument.startsWith("--")) fail(`未知选项：${argument}`);
+    names.push(argument);
+  }
+  if (!names.length) fail("请至少提供一个 Skill 名称。");
+  return names;
+}
+
+const [command, ...args] = process.argv.slice(2);
 
 switch (command) {
   case "list":
     await listSkills();
     break;
-  case "publish":
-    await publishSkill(name, flags);
+  case "install": {
+    const names = installSkillNames(args);
+    for (const [index, name] of names.entries()) {
+      if (index > 0) console.log();
+      await installSkill(name, args);
+    }
     break;
-  case "install":
-    await installSkill(name, rest);
-    break;
+  }
   default:
-    console.log("可用命令：list、publish <skill-name> [--dry-run|--yes]、install <skill-name> [--target=codex,claude-code]");
+    console.log("可用命令：list、install <skill-name>... [--target=codex,claude-code] [--dry-run]");
     process.exit(command ? 1 : 0);
 }
