@@ -1,4 +1,0 @@
-interface:
-  display_name: "抖音视频下载"
-  short_description: "下载指定抖音单条视频，核验媒体并记录来源，为视频研究和转写准备素材"
-  default_prompt: "使用 $douyin-download 下载我指定的抖音视频并核验本地文件。"
