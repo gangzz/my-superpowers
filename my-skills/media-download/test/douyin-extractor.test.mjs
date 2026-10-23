@@ -138,6 +138,89 @@ test('分享短链先通过 HTTP 重定向解析成正式作品 URL', async () =
   assert.equal(resolved, 'https://www.douyin.com/jingxuan?modal_id=7686536402804247871');
 });
 
+test('标准长链和带 modal_id 的入口统一规范化且不额外请求短链解析', async () => {
+  const id = '7677380416872959247';
+  for (const url of [
+    `https://www.douyin.com/video/${id}`,
+    `https://www.douyin.com/video/${id}?previous_page=web_code_link`,
+    `https://www.douyin.com/jingxuan?modal_id=${id}`,
+  ]) {
+    assert.equal(await resolveDouyinInputUrl(url, {
+      fetchImpl: () => { throw new Error('Long links must not request short-link resolution'); },
+    }), `https://www.douyin.com/jingxuan?modal_id=${id}`);
+  }
+  assert.equal(await resolveDouyinInputUrl(`https://example.com/video/${id}`), `https://example.com/video/${id}`);
+});
+
+test('普通长链下载和失败任务人工接管使用同一个规范作品入口', async () => {
+  const id = '7677380416872959247';
+  const url = `https://www.douyin.com/video/${id}`;
+  const page = fakePage({ contentId: id, targetUrl: 'https://v3.douyinvod.com/video/target' });
+  const extractor = createDouyinExtractor();
+  const manifest = await extractor.extract({ url, page });
+  assert.equal(page.navigatedTo, `https://www.douyin.com/jingxuan?modal_id=${id}`);
+  assert.equal(await extractor.manualEntryUrl({ job: { url } }), page.navigatedTo);
+  assert.equal(manifest.source.canonicalUrl, url);
+});
+
+function accessElement({ hidden = false, opacity = '1', text = '', tagName = 'DIV', parentElement = null } = {}) {
+  return {
+    hidden, parentElement, tagName, innerText: text,
+    style: { display: 'block', visibility: 'visible', opacity },
+    closest() { return hidden ? this : null; },
+    querySelector() { return null; },
+    getBoundingClientRect() { return { width: 300, height: 200, top: 0, left: 0, bottom: 200, right: 300 }; },
+  };
+}
+
+function accessPage({ candidates = [], videos = [], body = '' } = {}) {
+  return {
+    async evaluate(operation) {
+      const globals = {
+        document: { body: { innerText: body }, querySelectorAll: (selector) => selector === 'video' ? videos : candidates },
+        getComputedStyle: (element) => element.style,
+        innerHeight: 960,
+        innerWidth: 1440,
+      };
+      const previous = Object.fromEntries(Object.keys(globals).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+      Object.assign(globalThis, globals);
+      try { return operation(); } finally {
+        for (const [key, descriptor] of Object.entries(previous)) {
+          if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+          else delete globalThis[key];
+        }
+      }
+    },
+  };
+}
+
+test('隐藏验证码挂件和正文提及验证码均不算人工验证', async () => {
+  const extractor = createDouyinExtractor();
+  const video = { ...accessElement(), videoWidth: 720, videoHeight: 1280, readyState: 4 };
+  for (const candidates of [
+    [accessElement({ hidden: true, text: '安全验证' })],
+    [accessElement({ opacity: '0', text: '安全验证' })],
+    [accessElement({ text: '安全验证', parentElement: accessElement({ opacity: '0' }) })],
+    [],
+  ]) {
+    assert.deepEqual(await extractor.detectAccessState({ page: accessPage({
+      candidates, videos: [video], body: '这个视频解释如何填写验证码',
+    }) }), { state: 'ready' });
+  }
+  assert.deepEqual(await extractor.detectAccessState({ page: accessPage({
+    candidates: [accessElement({ hidden: true, text: '安全验证' })],
+  }) }), { state: 'unavailable' });
+});
+
+test('可见验证弹层优先于其后的可播放视频', async () => {
+  const extractor = createDouyinExtractor();
+  for (const candidate of [accessElement({ text: '请完成安全验证' }), accessElement({ tagName: 'IFRAME' })]) {
+    assert.deepEqual(await extractor.detectAccessState({ page: accessPage({
+      candidates: [candidate], videos: [{ ...accessElement(), videoWidth: 720, videoHeight: 1280, readyState: 4 }],
+    }) }), { state: 'captcha' });
+  }
+});
+
 test('Extractor 用短链解析后的正式 URL 导航，避免短链入口验证码', async () => {
   const contentId = '7686536402804247871';
   const targetUrl = 'https://v3.douyinvod.com/video/tos/cn/target-key';

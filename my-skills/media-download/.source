@@ -1,4 +1,4 @@
 source=original
 commit=none
-summary=原创通用媒体下载 Skill，支持逐任务输出目录、抖音 RENDER_DATA 与 B 站 playurl DASH 发现，并把作品、作者与可用互动信息写入媒体来源记录
+summary=原创通用媒体下载 Skill，支持抖音统一作品入口与可见验证判断、有限人工接管、逐任务输出目录、B站DASH及媒体来源记录
 targets=codex

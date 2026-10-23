@@ -42,6 +42,7 @@ function fakeBrowser({ inspectionError = null, selectedVideo = {
           return selectedVideo;
         },
         async close() { this.closed = true; },
+        isClosed() { return this.closed; },
       };
       state.pages.push(page);
       return page;
@@ -392,6 +393,41 @@ test('no-browser Extractor 的 Job 不启动 Patchright Context', async (t) => {
   assert.equal(browser.state.launches, 0);
   assert.equal(store.listDownloads()[0].status, 'succeeded');
 });
+
+for (const scenario of ['timeout', 'window-closed']) {
+  test(`人工接管 ${scenario} 后退出 Host、释放锁并保留待下载任务`, async (t) => {
+    const paths = tempRuntime(t);
+    const store = createJobStore({ databasePath: paths.jobsDatabase, idFactory: createIds() });
+    t.after(() => store.close());
+    const browser = fakeBrowser();
+    const session = new BrowserSession({ driver: browser.driver, profilePath: paths.defaultProfile });
+    const open = store.submitBrowserCommand({ type: 'open_browser', url: 'https://example.com/video/1', purpose: 'quality-selection' });
+    const job = store.submitDownload({ url: 'https://example.com/video/1' });
+    let now = 0;
+    const events = [];
+    const host = new BrowserHost({
+      store, session, workerId: 'host', manualTimeoutMs: 1000,
+      clock: () => now,
+      onEvent: (event) => events.push(event),
+      acquireLock: ({ ownerId }) => acquireProfileLock({ lockPath: paths.defaultProfileLock, profilePath: paths.defaultProfile, ownerId }),
+      executeDownload: async () => { throw new Error('Manual exit must not start queued downloads'); },
+      requiresBrowser: async () => true,
+      resolveManualEntry: async ({ job: failed }) => failed.url,
+      sleep: async () => {
+        now += 1000;
+        if (scenario === 'window-closed') browser.state.pages[0].closed = true;
+      },
+    });
+    const result = await host.serve();
+    const reason = scenario === 'timeout' ? 'manual_timeout' : 'manual_window_closed';
+    assert.equal(result.reason, reason);
+    assert.deepEqual(events.map((event) => event.type), ['manual_open', reason]);
+    assert.deepEqual(store.getBrowserCommand(open.id).result, { requiresUserAction: true, manualTimeoutMs: 1000 });
+    assert.equal(store.getDownload(job.id).status, 'queued');
+    assert.equal(browser.state.contextCloses, 1);
+    assert.equal(existsSync(paths.defaultProfileLock), false);
+  });
+}
 
 test('Context 关闭失败时保留 Profile 锁', async (t) => {
   const paths = tempRuntime(t);

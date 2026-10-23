@@ -7,6 +7,22 @@ description: 下载用户指定的单个公开媒体作品，通过已注册的�
 
 用户必须提供一个作品 URL，也可以为本次任务指定输出目录。依次解析 URL、选择匹配的站点 Extractor、生成标准化 `MediaManifest`、应用共享选择策略、传输选中的资源、按需后处理，并在报告成功前验证文件。
 
+## 首次运行与依赖
+
+ZIP 安装只放置 Skill 的指令、代码和锁文件，不携带本机 `node_modules`、浏览器缓存、登录 Profile 或站点会话。开始下载前，从 Skill 根目录运行：
+
+```sh
+node scripts/setup.mjs --check
+```
+
+检查失败时，先向用户说明首次准备会写入 Skill 目录下的 `node_modules`，并可能把 Patchright Chromium 下载到当前用户的浏览器缓存；获得用户许可后再运行：
+
+```sh
+node scripts/setup.mjs --install
+```
+
+准备脚本要求 Node.js 22+、npm、FFmpeg 与 ffprobe。它只按 `package-lock.json` 安装 Node 依赖和对应 Chromium，不自动安装系统软件；系统依赖缺失或安装后复检失败时停止。不要把结构安装成功表述为运行环境已经就绪。
+
 ## 稳定边界
 
 - Extractor 负责 URL 匹配和站点特有的资源发现。它报告作品的实际媒体类型与候选资源，不写入最终文件。
@@ -53,6 +69,18 @@ node scripts/host.mjs
 ```
 
 没有逐任务目录的 Job 使用 Host 默认目录；`node scripts/host.mjs --output '/绝对路径'` 只覆盖这个回退值，也兼容迁移前的旧 Job。成功结果包含视频路径和同名的 `*.mp4.source.json`；来源记录保存规范作品身份、Extractor 已确认的作者与发布内容、可取得的非播放量互动快照，以及 SHA256、大小、时长、尺寸和音轨确认。`downloadedAt` 同时表示本次互动快照时间，不另建采集时间。失败结果保留错误码与错误信息，由调用者决定是否重新提交新 Job。
+
+## 人工接管与退出
+
+`captcha` / `login_required` 是站点访问状态，和运行命令的权限审批分开。收到这些错误时，先核对可见页面；隐藏挂件或文案中出现“验证码”不足以证明需要人工验证。不要绕过真实验证码。
+
+确认需要用户操作时：
+
+1. 提交 `node scripts/browser.mjs open <失败Job的ID>`；已有 Host 会处理命令，没有 Host 时运行 `node scripts/host.mjs`。
+2. 看到 `manual_open` 后，立即向用户说明专用 Chrome 已打开、实际需要做什么，并提供“已完成／取消”的交互入口；支持结构化提问时使用该入口，否则明确请用户回复。不要把它称为“等待批准”，也不要只轮询 Host 而不给用户交互。
+3. 用户确认完成或取消后，运行 `node scripts/browser.mjs close`，等待命令完成并确认 Host 退出。只有用户确认完成且要继续下载时才提交新 Job；保留原失败记录，不自动重试。
+
+人工窗口关闭或等待满10分钟时，Host 会发出 `manual_window_closed` / `manual_timeout`，关闭 Context、释放 Profile 后退出，尚未领取的下载任务保留在队列中。超时不代表用户完成、同意或取消；向用户说明实际状态，不宣称下载成功，也不要自动重新打开接管窗口。
 
 修改框架契约前，先读 [docs/architecture.md](docs/architecture.md)。修改或运行站点 Extractor 前，先读 `docs/extractors/` 下的对应文档。
 

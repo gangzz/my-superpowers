@@ -60,6 +60,8 @@ close_browser() -> { selectedVideo }
 
 清晰度选择发生在 DownloadJob 创建之前。人工浏览器打开期间 BrowserHost 暂停领取下载任务；用户确认并关闭浏览器后，调用者才提交普通 Job，因此不引入等待人工、继续任务或取消任务状态。
 
+人工浏览器打开成功时，命令结果记录 `requiresUserAction` 和 `manualTimeoutMs`，Host 同时发出 `manual_open` 事件供调用者立即交互。调用者的具体提示与完成／取消步骤以 `SKILL.md`“人工接管与退出”为准。默认等待上限为10分钟；窗口被关闭或超时后，Host 发出 `manual_window_closed` 或 `manual_timeout`，退出并执行正常 Context／Profile 清理，已排队但未领取的 Job 保持 queued。打开成功只表示窗口已打开，不表示验证通过；超时不产生用户确认，也不自动重试。
+
 Profile 文件锁覆盖 BrowserHost 持有 Persistent Context 的完整周期。残留锁在确认原持有进程已退出且 Profile 未被 Chrome 使用后恢复。
 
 ## 开发探针边界
