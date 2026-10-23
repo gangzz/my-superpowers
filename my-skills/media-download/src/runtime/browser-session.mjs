@@ -52,7 +52,7 @@ export class BrowserSession {
   }
 
   async inspectManualMedia() {
-    if (!this.manualPage) return null;
+    if (!this.isManualOpen()) return null;
     return this.manualPage.evaluate(() => {
       const candidates = [...document.querySelectorAll('video')]
         .map((video) => ({
@@ -70,6 +70,10 @@ export class BrowserSession {
         ));
       return candidates[0] ?? null;
     });
+  }
+
+  isManualOpen() {
+    return Boolean(this.manualPage && !this.manualPage.isClosed());
   }
 
   async close() {

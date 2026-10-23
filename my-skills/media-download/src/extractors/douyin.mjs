@@ -35,7 +35,10 @@ export function extractDouyinContentId(value) {
 
 export async function resolveDouyinInputUrl(value, { fetchImpl = globalThis.fetch } = {}) {
   const url = parseHttpUrl(value);
-  if (!url || !SHORT_LINK_HOSTS.has(url.hostname)) return value;
+  if (!url || !DOUYIN_HOSTS.has(url.hostname)) return value;
+  const contentId = extractDouyinContentId(value);
+  if (contentId) return `https://www.douyin.com/jingxuan?modal_id=${contentId}`;
+  if (!SHORT_LINK_HOSTS.has(url.hostname)) return value;
   if (typeof fetchImpl !== 'function') throw new TypeError('fetchImpl must be a function');
   try {
     const response = await fetchImpl(url.toString(), {
@@ -292,13 +295,29 @@ async function readTargetRenderData(page, contentId) {
 
 async function pageAccessState(page) {
   return page.evaluate(() => {
-    const body = document.body?.innerText ?? '';
-    const hasCaptcha = /验证码|安全验证|完成验证|拖动滑块/u.test(body)
-      || Boolean(document.querySelector('[class*="captcha" i], iframe[src*="captcha" i]'));
+    const visible = (element) => {
+      if (!element || element.hidden || element.closest('[hidden], [aria-hidden="true"]')) return false;
+      for (let node = element; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse'
+          || Number(style.opacity) === 0) return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.right > 0
+        && rect.top < innerHeight && rect.left < innerWidth;
+    };
+    const hasCaptcha = [...document.querySelectorAll(
+      '[class*="captcha" i], [id*="captcha" i], [class*="verify" i], [id*="verify" i], iframe[src*="captcha" i], [role="dialog"]',
+    )].some((element) => visible(element) && (
+      element.tagName === 'IFRAME'
+      || /安全验证|完成验证|拖动滑块|拖动.*滑块|请.*验证/u.test(element.innerText ?? '')
+      || Boolean(element.querySelector('[role="slider"], canvas'))
+    ));
     if (hasCaptcha) return { state: 'captcha' };
     const playable = [...document.querySelectorAll('video')]
-      .some((video) => video.videoWidth > 0 && video.videoHeight > 0 && video.readyState > 0);
+      .some((video) => visible(video) && video.videoWidth > 0 && video.videoHeight > 0 && video.readyState > 0);
     if (playable) return { state: 'ready' };
+    const body = document.body?.innerText ?? '';
     const loginRequired = /登录后观看|登录后可继续|请先登录/u.test(body);
     return { state: loginRequired ? 'login_required' : 'unavailable' };
   });
@@ -351,8 +370,8 @@ export function createDouyinExtractor({
       return pageAccessState(page);
     },
 
-    manualEntryUrl({ job } = {}) {
-      return job?.url;
+    async manualEntryUrl({ job } = {}) {
+      return resolveDouyinInputUrl(job?.url, { fetchImpl });
     },
 
     async extract({ url, page } = {}) {

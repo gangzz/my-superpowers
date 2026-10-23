@@ -23,6 +23,7 @@ export function createDefaultMediaDownloadRuntime({
   executablePath = defaultChromePath(),
   launchOptions = { viewport: { width: 1440, height: 960 } },
   extractors = [douyinExtractor, bilibiliExtractor],
+  onEvent,
 } = {}) {
   const paths = runtimePaths(stateRoot);
   const registry = createExtractorRegistry(extractors);
@@ -44,6 +45,7 @@ export function createDefaultMediaDownloadRuntime({
     executeDownload: executor.executeDownload,
     requiresBrowser: executor.requiresBrowser,
     resolveManualEntry: executor.resolveManualEntry,
+    onEvent,
   });
 
   return Object.freeze({ paths, registry, store, session, executor, host });

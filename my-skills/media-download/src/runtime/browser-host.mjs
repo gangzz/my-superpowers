@@ -22,12 +22,16 @@ export class BrowserHost {
     resolveManualEntry,
     workerId = `browser-host:${randomUUID()}`,
     pollIntervalMs = 500,
+    manualTimeoutMs = 10 * 60_000,
+    clock = Date.now,
+    onEvent = () => {},
     sleep = wait,
   } = {}) {
     if (!store || !session || typeof acquireLock !== 'function') throw new TypeError('store, session, and acquireLock are required');
     if (typeof executeDownload !== 'function') throw new TypeError('executeDownload is required');
     if (typeof requiresBrowser !== 'function') throw new TypeError('requiresBrowser is required');
     if (typeof resolveManualEntry !== 'function') throw new TypeError('resolveManualEntry is required');
+    if (!Number.isFinite(manualTimeoutMs) || manualTimeoutMs <= 0) throw new TypeError('manualTimeoutMs must be positive');
     this.store = store;
     this.session = session;
     this.acquireLock = acquireLock;
@@ -36,6 +40,9 @@ export class BrowserHost {
     this.resolveManualEntry = resolveManualEntry;
     this.workerId = workerId;
     this.pollIntervalMs = pollIntervalMs;
+    this.manualTimeoutMs = manualTimeoutMs;
+    this.clock = clock;
+    this.onEvent = onEvent;
     this.sleep = sleep;
   }
 
@@ -54,7 +61,12 @@ export class BrowserHost {
           url = await this.resolveManualEntry({ job });
         }
         await this.session.openManual(url);
-        this.store.succeedBrowserCommand({ id: command.id, workerId: this.workerId });
+        this.store.succeedBrowserCommand({
+          id: command.id,
+          workerId: this.workerId,
+          result: { requiresUserAction: true, manualTimeoutMs: this.manualTimeoutMs },
+        });
+        this.onEvent({ type: 'manual_open', commandId: command.id, manualTimeoutMs: this.manualTimeoutMs });
         return 'manual_open';
       }
       let selectedVideo = null;
@@ -115,6 +127,8 @@ export class BrowserHost {
   async serve({ signal = null } = {}) {
     const lock = this.acquireLock({ ownerId: this.workerId });
     let manualOpen = false;
+    let manualDeadline = null;
+    let stopReason = null;
     this.store.failInterruptedDownloads({ workerId: this.workerId });
     this.store.failInterruptedBrowserCommands({ workerId: this.workerId });
     let closeError = null;
@@ -123,12 +137,23 @@ export class BrowserHost {
         const command = this.store.claimNextBrowserCommand({ workerId: this.workerId });
         if (command) {
           const result = await this.#runCommand(command);
-          if (result === 'manual_open') manualOpen = true;
-          if (result === 'manual_closed' || result === 'manual_closed_failed') manualOpen = false;
+          if (result === 'manual_open') {
+            manualOpen = true;
+            manualDeadline = this.clock() + this.manualTimeoutMs;
+          }
+          if (result === 'manual_closed' || result === 'manual_closed_failed') {
+            manualOpen = false;
+            manualDeadline = null;
+          }
           continue;
         }
 
         if (manualOpen) {
+          if (!this.session.isManualOpen() || this.clock() >= manualDeadline) {
+            stopReason = this.session.isManualOpen() ? 'manual_timeout' : 'manual_window_closed';
+            this.onEvent({ type: stopReason });
+            break;
+          }
           await this.sleep(this.pollIntervalMs);
           continue;
         }
@@ -146,6 +171,6 @@ export class BrowserHost {
       if (!closeError) lock.release();
     }
     if (closeError) throw closeError;
-    return { status: 'stopped', workerId: this.workerId };
+    return { status: 'stopped', workerId: this.workerId, ...(stopReason ? { reason: stopReason } : {}) };
   }
 }
