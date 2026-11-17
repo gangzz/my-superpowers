@@ -1,0 +1,6 @@
+interface:
+  display_name: "AntV 信息图绘制"
+  short_description: "把明确的内容结构绘制成脑图、流程、对比或层级信息图，支持 HTML 与 SVG"
+  default_prompt: "使用 $infographic-creator 将这份内容绘制成易读的信息图，检查中文显示并提供 SVG 导出。"
+policy:
+  allow_implicit_invocation: true

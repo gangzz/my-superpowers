@@ -1,0 +1,5 @@
+source=https://github.com/antvis/Infographic/tree/main/skills/infographic-creator
+commit=5ae0d9394ac6280cb688eb4b4345881e291b9209
+upstream_skill_sha256=00d0f5da0d7f17e8d23e9e06ce67f31d187b0c190f118aed50fa7cc736dcbc8b
+summary=官方信息图 Skill 的窄幅本地适配：语义优先、弱依赖与成图交付
+targets=codex,claude-code

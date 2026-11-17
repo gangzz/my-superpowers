@@ -1,4 +1,4 @@
 source=original
 commit=none
-summary=原创复杂关系与流程结构化呈现 Skill
+summary=原创结构化表达；可选 AntV 信息图绘制弱依赖
 targets=codex,claude-code
