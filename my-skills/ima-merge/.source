@@ -1,0 +1,4 @@
+source=original
+commit=none
+summary=ima MCP 优先统一入口；本机 WorkBuddy 加密授权桥接，按确切能力缺口使用现有 ima-skill
+targets=codex

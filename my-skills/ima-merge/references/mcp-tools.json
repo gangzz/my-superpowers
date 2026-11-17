@@ -1,0 +1,556 @@
+[
+  {
+    "name": "search_knowledge",
+    "description": "在指定知识库内搜索知识",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "description": "当前游标, 从 空字符串 开始",
+          "type": "string"
+        },
+        "filters": {
+          "items": {
+            "properties": {
+              "filter_type": {
+                "description": "enum: FilterType",
+                "enum": [
+                  "UNKNOWN_FILTER_TYPE",
+                  "MEDIA_STATE_FILTER_TYPE",
+                  "TAGS_FILTER_TYPE",
+                  "MEDIA_TYPE_FILTER_TYPE",
+                  "MEDIA_TYPE_FILTER_OUT_TYPE"
+                ],
+                "type": "string"
+              },
+              "media_state_filter": {
+                "properties": {
+                  "media_states": {
+                    "items": {
+                      "description": "enum: MediaParseState",
+                      "enum": [
+                        "MEDIA_INIT",
+                        "MEDIA_PARSING",
+                        "MEDIA_PARSE_SUCCESS",
+                        "MEDIA_PARSE_ERROR",
+                        "MEDIA_PARSE_TIMEOUT"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "media_type_filter": {
+                "properties": {
+                  "media_type": {
+                    "items": {
+                      "description": "enum: MediaType",
+                      "enum": [
+                        "MEDIA_TYPE_NOT_USE",
+                        "PDF",
+                        "WEB",
+                        "WORD",
+                        "PPT",
+                        "EXCEL",
+                        "WECHAT_ARTICLE",
+                        "MARKDOWN",
+                        "IMG",
+                        "NOTE",
+                        "SESSION",
+                        "TXT",
+                        "XMIND",
+                        "SOUND_RECORDING",
+                        "WEB_VIDEO",
+                        "PODCAST",
+                        "FOLDER"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "media_type_filter_out": {
+                "properties": {
+                  "media_type": {
+                    "items": {
+                      "description": "enum: MediaType",
+                      "enum": [
+                        "MEDIA_TYPE_NOT_USE",
+                        "PDF",
+                        "WEB",
+                        "WORD",
+                        "PPT",
+                        "EXCEL",
+                        "WECHAT_ARTICLE",
+                        "MARKDOWN",
+                        "IMG",
+                        "NOTE",
+                        "SESSION",
+                        "TXT",
+                        "XMIND",
+                        "SOUND_RECORDING",
+                        "WEB_VIDEO",
+                        "PODCAST",
+                        "FOLDER"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "tags_filter": {
+                "properties": {
+                  "tags": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "folder_id": {
+          "description": "文件夹id",
+          "type": "string"
+        },
+        "knowledge_base_id": {
+          "description": "知识库ID",
+          "type": "string"
+        },
+        "query": {
+          "description": "用户query",
+          "type": "string"
+        }
+      },
+      "required": [
+        "knowledge_base_id",
+        "query"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "title": "搜索知识库",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true
+    }
+  },
+  {
+    "name": "get_addable_knowledge_base_list",
+    "description": "获取可添加（可写入）的知识库列表",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "description": "当前游标, 从空字符串开始",
+          "type": "string"
+        },
+        "limit": {
+          "description": "获取数量限制",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "title": "获取可添加（可写入）的知识库列表",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false
+    }
+  },
+  {
+    "name": "import_urls",
+    "description": "批量导入网页链接到知识库",
+    "inputSchema": {
+      "properties": {
+        "folder_id": {
+          "description": "文件夹id，空则默认根目录",
+          "type": "string"
+        },
+        "knowledge_base_id": {
+          "description": "知识库ID",
+          "type": "string"
+        },
+        "urls": {
+          "description": "待导入链接，最多10个",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "folder_id",
+        "knowledge_base_id",
+        "urls"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "title": "批量导入网页链接到知识库",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false
+    }
+  },
+  {
+    "name": "search_knowledge_base",
+    "description": "搜索知识库。根据关键词搜索，匹配知识库名称、描述、创建者昵称。",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "description": "当前游标, 从 空字符串 开始",
+          "type": "string"
+        },
+        "limit": {
+          "description": "搜索数量限制",
+          "type": "integer"
+        },
+        "query": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "limit",
+        "query"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "title": "搜索知识库",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true
+    }
+  },
+  {
+    "name": "get_knowledge_list",
+    "description": "获取知识列表",
+    "inputSchema": {
+      "properties": {
+        "cursor": {
+          "description": "当前游标, 从空字符串开始",
+          "type": "string"
+        },
+        "filters": {
+          "items": {
+            "properties": {
+              "filter_type": {
+                "description": "enum: FilterType",
+                "enum": [
+                  "UNKNOWN_FILTER_TYPE",
+                  "MEDIA_STATE_FILTER_TYPE",
+                  "TAGS_FILTER_TYPE",
+                  "MEDIA_TYPE_FILTER_TYPE",
+                  "MEDIA_TYPE_FILTER_OUT_TYPE"
+                ],
+                "type": "string"
+              },
+              "media_state_filter": {
+                "properties": {
+                  "media_states": {
+                    "items": {
+                      "description": "enum: MediaParseState",
+                      "enum": [
+                        "MEDIA_INIT",
+                        "MEDIA_PARSING",
+                        "MEDIA_PARSE_SUCCESS",
+                        "MEDIA_PARSE_ERROR",
+                        "MEDIA_PARSE_TIMEOUT"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "media_type_filter": {
+                "properties": {
+                  "media_type": {
+                    "items": {
+                      "description": "enum: MediaType",
+                      "enum": [
+                        "MEDIA_TYPE_NOT_USE",
+                        "PDF",
+                        "WEB",
+                        "WORD",
+                        "PPT",
+                        "EXCEL",
+                        "WECHAT_ARTICLE",
+                        "MARKDOWN",
+                        "IMG",
+                        "NOTE",
+                        "SESSION",
+                        "TXT",
+                        "XMIND",
+                        "SOUND_RECORDING",
+                        "WEB_VIDEO",
+                        "PODCAST",
+                        "FOLDER"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "media_type_filter_out": {
+                "properties": {
+                  "media_type": {
+                    "items": {
+                      "description": "enum: MediaType",
+                      "enum": [
+                        "MEDIA_TYPE_NOT_USE",
+                        "PDF",
+                        "WEB",
+                        "WORD",
+                        "PPT",
+                        "EXCEL",
+                        "WECHAT_ARTICLE",
+                        "MARKDOWN",
+                        "IMG",
+                        "NOTE",
+                        "SESSION",
+                        "TXT",
+                        "XMIND",
+                        "SOUND_RECORDING",
+                        "WEB_VIDEO",
+                        "PODCAST",
+                        "FOLDER"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "tags_filter": {
+                "properties": {
+                  "tags": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "folder_id": {
+          "description": "文件夹id",
+          "type": "string"
+        },
+        "knowledge_base_id": {
+          "description": "知识库ID",
+          "type": "string"
+        },
+        "limit": {
+          "description": "获取知识数量限制",
+          "type": "integer"
+        },
+        "need_default_cover": {
+          "description": "需要默认兜底封面图",
+          "type": "boolean"
+        },
+        "sort_type": {
+          "description": "enum: SortType",
+          "enum": [
+            "DEFAULT_SORT_TYPE",
+            "ASC_SORT_TYPE",
+            "SIZE_DESC_SORT_TYPE",
+            "TITLE_SORT_TYPE",
+            "TITLE_DESC_SORT_TYPE",
+            "SIZE_SORT_TYPE",
+            "MEDIA_SORT_TYPE",
+            "MEDIA_DESC_SORT_TYPE",
+            "UPDATE_TS_SORT_TYPE",
+            "UPDATE_TS_DESC_SORT_TYPE"
+          ],
+          "type": "string"
+        },
+        "version": {
+          "description": "版本号，用后台返回的",
+          "type": "string"
+        }
+      },
+      "required": [
+        "knowledge_base_id",
+        "limit"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "title": "获取知识列表",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true
+    }
+  },
+  {
+    "name": "fetch_media_content",
+    "description": "获取media内容",
+    "inputSchema": {
+      "properties": {
+        "media_id": {
+          "description": "文件需要带 media id",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "annotations": {
+      "title": "获取media内容",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true
+    }
+  },
+  {
+    "name": "get_knowledge_base_list",
+    "description": "获取知识库列表",
+    "inputSchema": {
+      "properties": {
+        "params": {
+          "items": {
+            "properties": {
+              "cursor": {
+                "type": "string"
+              },
+              "limit": {
+                "description": "获取知识库数量限制",
+                "type": "integer"
+              },
+              "type": {
+                "description": "enum: KnowledgeBaseType",
+                "enum": [
+                  "KBT_UNUSE",
+                  "KBT_MINE_KB",
+                  "KBT_SHARED_KB",
+                  "KBT_SUBSCRIBED_CREATE_KB",
+                  "KBT_SUBSCRIBED_JOIN_KB"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "limit"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "annotations": {
+      "title": "获取知识库列表",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true
+    }
+  },
+  {
+    "name": "create_media",
+    "description": "创建 media，仅申请媒体 ID 与上传方式，本接口不接收文件内容。 一般流程：create_media → 按返回的 upload_mode 把文件上传到 COS → 调 add_knowledge 入库。 上传方式按响应的 upload_mode 决定： 1) upload_mode = 1（UPLOAD_MODEL_URL，预签名直传）：用 upload_url.presigned_url 发起 HTTP PUT， 请求体为文件二进制内容；必须原样携带 upload_url.auth_headers 中的全部 header （含 Content-Type 与 Content-Length，且 Content-Length 必须与调用本接口时传入的 file_size 完全一致）， 否则签名校验失败；链接在 upload_url.url_expired_ts（秒级时间戳）前有效。 该方式不返回 cos_credential，也没有 cos_key，请勿再向用户索要或拼接 COS 信息。 2) upload_mode = 2（UPLOAD_MODEL_CREDENTIAL）或未返回 upload_mode：使用 cos_credential 中的 token / secret_id / secret_key（STS 临时凭证）按 COS SDK 上传，目标 key 为 cos_credential.cos_key。",
+    "inputSchema": {
+      "properties": {
+        "apply_upload_mode": {
+          "description": "固定传 1，使用自动上传模式。",
+          "type": "integer"
+        },
+        "content_type": {
+          "description": "文件 MIME 类型，必须根据文件扩展名精确填写，禁止用 application/octet-stream 兜底。后续cos上传content_type字段要参考这个对照表。 对照表：pdf→application/pdf；doc→application/msword； docx→application/vnd.openxmlformats-officedocument.wordprocessingml.document； ppt→application/vnd.ms-powerpoint； pptx→application/vnd.openxmlformats-officedocument.presentationml.presentation； xls→application/vnd.ms-excel； xlsx→application/vnd.openxmlformats-officedocument.spreadsheetml.sheet； csv→text/csv；md/markdown→text/markdown；txt→text/plain； xmind→application/x-xmind； png→image/png；jpg/jpeg→image/jpeg；webp→image/webp； mp3→audio/mpeg；m4a→audio/x-m4a；wav→audio/wav； html→text/html；epub→application/epub+zip；aac→audio/aac。 对照表中找不到对应扩展名时应拒绝上传，不要猜测。",
+          "type": "string"
+        },
+        "file_ext": {
+          "description": "文件后缀名",
+          "type": "string"
+        },
+        "file_name": {
+          "description": "文件名称",
+          "type": "string"
+        },
+        "file_size": {
+          "description": "文件大小，必须与实际上传文件一致，服务端据此校验大小上限，超限拒绝",
+          "type": "integer"
+        },
+        "knowledge_base_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "apply_upload_mode",
+        "content_type",
+        "file_name",
+        "file_size",
+        "knowledge_base_id"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "title": "创建media",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false
+    }
+  },
+  {
+    "name": "add_knowledge",
+    "description": "添加知识",
+    "inputSchema": {
+      "properties": {
+        "duplicate_name_strategy": {
+          "description": "重名策略，默认 SAVE(保留) (enum: DuplicateNameStrategy)",
+          "enum": [
+            "DUPLICATE_NAME_STRATEGY_SAVE",
+            "DUPLICATE_NAME_STRATEGY_CANCEL",
+            "DUPLICATE_NAME_STRATEGY_REPLACE"
+          ],
+          "type": "string"
+        },
+        "folder_id": {
+          "description": "文件夹id",
+          "type": "string"
+        },
+        "knowledge_base_id": {
+          "description": "知识库ID",
+          "type": "string"
+        },
+        "media_id": {
+          "description": "文件需要带 media id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "knowledge_base_id"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "title": "添加知识",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false
+    }
+  }
+]

@@ -1,0 +1,5 @@
+interface:
+  display_name: "IMA Merge"
+  short_description: "优先官方 MCP 读取 ima 知识库，按能力缺口补充个人笔记操作"
+policy:
+  allow_implicit_invocation: false
