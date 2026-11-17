@@ -35,6 +35,8 @@ node scripts/setup.mjs --install
 - 用户明确要求自己选择清晰度时，调用者先用同一 Profile 打开作品，用户选好后关闭浏览器并取得当前视频尺寸，再提交带可选期望尺寸的新 Job；人工选择不增加 Job 状态。
 - 正式下载链路不得启动或依赖 `NetworkProbe`。生产 Extractor 必须从站点页面、响应或明确接口直接生成 Manifest。
 - 登录是 Extractor 的按需访问状态。Extractor 可以直接返回 `ready`，也可以在当前访问路径需要身份时返回 `login_required` 或 `captcha`。
+- 抖音普通下载默认 Headless，不弹出窗口；B 站仍使用可见模式。混合队列在任务结束后关闭旧 Context，再以同一 Profile 切换模式，不并行打开该 Profile。不要因 Headless 失败自动改成可见模式或重试；按原错误和人工接管流程处理。
+- Headless 不等于匿名：沿用本 Skill 的专用 Profile，不读取主 Chrome；本次只验证了匿名公开视频样本，评论仍可能返回 `unavailable`，不能承诺登录态和所有作品都已覆盖。
 - 需要浏览器的 Extractor 初始状态为 `visible-required`，通过自身实机等价性验证后升级为 `headless-verified`。登录和 CAPTCHA 使用可见人机接管。
 - Verifier 通过后报告成功。
 

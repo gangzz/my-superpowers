@@ -40,7 +40,7 @@ queued -> running -> succeeded | failed
 ## 浏览器运行时
 
 - `BrowserHost`：唯一持有 Patchright 对象的 Node 进程。它获取默认 Profile 的文件锁并串行领取 `DownloadJob`；Extractor 需要浏览器时启动一个 Persistent `BrowserContext`，队列排空后关闭浏览器并释放锁。
-- `BrowserSession`：`BrowserHost` 内部的一次运行记录，覆盖一次队列排空过程。
+- `BrowserSession`：`BrowserHost` 内部的一次运行记录，覆盖一次队列排空过程。Host 按 Extractor 的 `headless-verified` 能力选择无头模式；其余浏览器 Extractor 保持可见。模式改变仅发生在任务页面关闭后，先关闭旧 Context，再以同一 Profile 重开，文件锁全程保留。人工接管始终要求可见模式，接管打开时不切到 Headless。
 - `JobPage`：每个下载任务独占的页面。任务开始时创建，任务结束后关闭。
 - 默认 Profile：代表本机的 media-download 浏览器身份，供所有站点共享。用户明确需要另一套浏览器身份时新增 Profile。
 

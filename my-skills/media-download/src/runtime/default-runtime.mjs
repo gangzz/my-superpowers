@@ -44,6 +44,7 @@ export function createDefaultMediaDownloadRuntime({
     }),
     executeDownload: executor.executeDownload,
     requiresBrowser: executor.requiresBrowser,
+    prefersHeadless: executor.prefersHeadless,
     resolveManualEntry: executor.resolveManualEntry,
     onEvent,
   });

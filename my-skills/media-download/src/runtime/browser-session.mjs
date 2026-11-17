@@ -14,6 +14,7 @@ export class BrowserSession {
     this.executablePath = executablePath;
     this.launchOptions = { ...launchOptions };
     this.context = null;
+    this.headless = null;
     this.manualPage = null;
   }
 
@@ -23,28 +24,33 @@ export class BrowserSession {
     return chromium;
   }
 
-  async open() {
-    if (this.context) return this.context;
+  async open({ headless = false } = {}) {
+    if (this.context && this.headless === headless) return this.context;
+    if (this.context) {
+      if (this.isManualOpen()) throw new Error('Cannot change browser mode during manual control');
+      await this.close();
+    }
     mkdirSync(this.profilePath, { recursive: true });
     const driver = await this.#driver();
     this.context = await driver.launchPersistentContext(this.profilePath, {
       ...this.launchOptions,
       ...(this.executablePath ? { executablePath: this.executablePath } : {}),
-      headless: false,
+      headless,
     });
+    this.headless = headless;
     for (const restoredPage of this.context.pages?.() ?? []) {
       await restoredPage.close().catch(() => {});
     }
     return this.context;
   }
 
-  async newJobPage() {
-    const context = await this.open();
+  async newJobPage({ headless = false } = {}) {
+    const context = await this.open({ headless });
     return context.newPage();
   }
 
   async openManual(url) {
-    const context = await this.open();
+    const context = await this.open({ headless: false });
     if (this.manualPage) await this.manualPage.close().catch(() => {});
     this.manualPage = await context.newPage();
     await this.manualPage.goto(requireHttpUrl(url), { waitUntil: 'domcontentloaded' });
@@ -81,6 +87,7 @@ export class BrowserSession {
     const context = this.context;
     await context.close();
     this.context = null;
+    this.headless = null;
     this.manualPage = null;
     return { closed: true };
   }

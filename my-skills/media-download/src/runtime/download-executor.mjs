@@ -82,6 +82,10 @@ export function createDownloadExecutor({
       return registry.match(job?.url).browserCapability !== 'no-browser';
     },
 
+    prefersHeadless({ job } = {}) {
+      return registry.match(job?.url).browserCapability === 'headless-verified';
+    },
+
     resolveManualEntry({ job } = {}) {
       const extractor = registry.match(job?.url);
       return extractor.manualEntryUrl ? extractor.manualEntryUrl({ job }) : job.url;

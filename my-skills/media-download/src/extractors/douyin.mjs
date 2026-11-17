@@ -358,7 +358,7 @@ export function createDouyinExtractor({
 } = {}) {
   return Object.freeze({
     id: 'douyin',
-    browserCapability: 'visible-required',
+    browserCapability: 'headless-verified',
 
     matches(value) {
       const url = parseHttpUrl(value);

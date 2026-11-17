@@ -1,4 +1,4 @@
 source=original
 commit=none
-summary=原创通用媒体下载 Skill，支持逐任务输出目录、B站DASH、媒体来源记录及可选抖音最多40条公开一级评论快照
+summary=原创通用媒体下载 Skill；抖音默认Headless，B站保持可见，人工接管可见；支持逐任务目录、DASH、来源记录与可选评论快照
 targets=codex

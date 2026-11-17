@@ -19,6 +19,7 @@ export class BrowserHost {
     acquireLock,
     executeDownload,
     requiresBrowser,
+    prefersHeadless = () => false,
     resolveManualEntry,
     workerId = `browser-host:${randomUUID()}`,
     pollIntervalMs = 500,
@@ -37,6 +38,7 @@ export class BrowserHost {
     this.acquireLock = acquireLock;
     this.executeDownload = executeDownload;
     this.requiresBrowser = requiresBrowser;
+    this.prefersHeadless = prefersHeadless;
     this.resolveManualEntry = resolveManualEntry;
     this.workerId = workerId;
     this.pollIntervalMs = pollIntervalMs;
@@ -101,7 +103,9 @@ export class BrowserHost {
     let result;
     let failure;
     try {
-      if (await this.requiresBrowser({ job })) page = await this.session.newJobPage();
+      if (await this.requiresBrowser({ job })) {
+        page = await this.session.newJobPage({ headless: await this.prefersHeadless({ job }) });
+      }
       result = await this.executeDownload({
         job,
         page: page ?? null,
