@@ -1,4 +1,4 @@
 source=original
 commit=none
-summary=原创中文音视频 ASR 与大模型保真纠错 Skill
+summary=原创中文音视频 ASR、保真纠错及 uv 命名共享运行工具
 targets=codex

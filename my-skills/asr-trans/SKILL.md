@@ -35,30 +35,35 @@ $asr-trans <media-path>
 
 ## 执行
 
-### 1. 预检
+### 1. 预检与共享运行工具
 
-1. 将输入和输出路径解析为绝对路径，确认输入是普通文件且可读。
-2. 确认 `ffmpeg`、`ffprobe` 可用。
-3. 选择能 `import funasr` 的 Python。优先使用用户指定的 `ASR_PYTHON`；否则检查当前 `python3`。
-4. 若没有可用环境，但存在 `uv`，在明确告知用户首次运行会下载较大的 Python 依赖和 FunASR 模型后，使用固定的 `funasr==1.3.22` 临时环境。需要网络或平台权限时遵循当前平台的授权流程。
-5. 缺少 FFmpeg、Python/uv 或依赖准备失败时停止并报告，不自动安装系统软件，不产生终稿。
+1. 将输入和输出路径解析为绝对路径，确认输入是普通文件且可读；输出存在且未传 `--force` 时停止。
+2. 从**本次实际加载的 Skill 目录**定位 [scripts/runtime.py](scripts/runtime.py)，以绝对路径调用。以下 `<runtime.py>` 均指这个绝对路径；`python3` 仅运行标准库启动程序，不承载 ASR 依赖。
+3. 确认 `python3`、`uv`、`ffmpeg`、`ffprobe` 可用。首次运行前告知可能下载 Python 3.11、较大的依赖和模型，再运行：
+
+```bash
+python3 <runtime.py> ensure
+```
+
+启动程序通过 `uv tool list` 和 `uv tool dir --bin` 查找固定工具 `asr-trans-runtime`。已登记且版本、代码、依赖和导入检查通过时复用；只有未登记且命令路径未被占用时，才从 Skill 随附的 `runtime/*.whl` 安装持久工具环境。真实路径由 uv 在本机确定，不修改 Skill 源码，不写死用户名、磁盘路径或缓存目录。
+
+- 只查看状态用 `python3 <runtime.py> status`：不会安装；未安装时返回 `state=missing` 和退出码 3。
+- 不扫描或借用业务项目 `.venv`，不使用当前 Python 的 FunASR，不临时拼 `--with`，不读取 `ASR_PYTHON` 选择 ASR 环境。
+- 已登记工具损坏、版本/代码/依赖不兼容、FFmpeg 缺失或安装失败时停止并报告；不自动覆盖、升级、换环境或重试。不要绕过启动程序继续执行，不产生终稿。
+- 运行包、锁定依赖和源码一起随 Skill 分发；环境与模型在各电脑本地准备，不打包环境或模型。平台下载与文件系统权限仍遵循当前平台流程，不自动安装系统软件。
 
 ### 2. 生成临时 ASR 骨架
 
-在系统临时目录中创建本次专用目录，从 Skill 根目录运行：
+在系统临时目录中创建本次专用目录，通过同一入口运行：
 
 ```bash
-<python> scripts/extract_asr.py \
+python3 <runtime.py> extract \
   --input <media-path> \
   --alignment <sentence|token> \
   --output <temp-dir>/raw.json
 ```
 
-若使用 `uv`：
-
-```bash
-uv run --with funasr==1.3.22 python scripts/extract_asr.py ...
-```
+启动程序再次核对命名工具，随后调用已安装工具中的识别代码；不依赖当前工作目录，也不向业务项目写入 Python 环境。
 
 脚本把 `paraformer-zh + fsmn-vad + ct-punc` 解析为固定的 ModelScope 模型 ID，优先复用本机完整缓存，并把音频转换为临时的 16kHz 单声道 WAV。必要时可用 `ASR_TRANS_MODEL`、`ASR_TRANS_VAD_MODEL`、`ASR_TRANS_PUNC_MODEL` 指定模型目录或 ID。token 数与时间戳数不一致时必须失败，不能截断后继续。
 
@@ -79,12 +84,12 @@ uv run --with funasr==1.3.22 python scripts/extract_asr.py ...
 先合成，再独立校验：
 
 ```bash
-<python> scripts/transcript_json.py finalize \
+python3 <runtime.py> finalize \
   --raw <temp-dir>/raw.json \
   --corrections <temp-dir>/corrections.json \
   --output <output-path> [--force]
 
-<python> scripts/transcript_json.py validate --input <output-path>
+python3 <runtime.py> validate --input <output-path>
 ```
 
 只有两条命令都成功才报告完成。确认：

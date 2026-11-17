@@ -264,7 +264,7 @@ def run(input_path: Path, output_path: Path, alignment: str) -> None:
         from funasr import AutoModel
     except ImportError as error:
         raise RuntimeError(
-            "当前 Python 无法导入 funasr；请使用可用解释器或按 Skill 指引通过 uv 运行"
+            "当前 Python 无法导入 funasr；请通过 Skill 的 scripts/runtime.py extract 统一入口运行"
         ) from error
 
     with tempfile.TemporaryDirectory(prefix="asr-trans-audio-") as directory:

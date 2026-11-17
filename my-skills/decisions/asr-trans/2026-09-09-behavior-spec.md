@@ -6,7 +6,8 @@
 
 - `my-skills/asr-trans/SKILL.md`：Agent 实际调用时读取的运行指令。
 - `my-skills/asr-trans/references/output-schema.md`：内部纠错清单与最终 JSON 的详细格式契约。
-- `my-skills/asr-trans/scripts/`：确定性抽取、合成、校验与离线测试。
+- `my-skills/asr-trans/scripts/`：统一运行入口、命名工具、确定性抽取/合成/校验与离线测试。
+- `pyproject.toml`、`requirements.in`、`requirements.lock` 与 `runtime/*.whl`：工具构建声明、完整依赖锁和随附本地运行包。
 - 本文：解释为什么这样设计、什么结果才算正确，以及当前还有哪些事实未被验证。
 
 本文描述的是开发版预期行为，不代表已经完成发布、安装或真实媒体端到端验证。
@@ -88,8 +89,9 @@ $asr-trans <media-path>
 
 - 输入必须解析为存在且可读的普通文件。
 - `ffmpeg`、`ffprobe` 必须可用。
-- 优先使用用户指定且能导入 `funasr` 的 `ASR_PYTHON`，否则检查当前 `python3`。
-- 本机没有可用环境但存在 `uv` 时，可以使用固定的 `funasr==1.3.22` 临时环境；首次依赖或模型下载前必须告知用户，并遵循平台授权流程。
+- 通过已加载 Skill 目录内 `scripts/runtime.py` 的绝对路径调用固定 uv 命名工具 `asr-trans-runtime`；启动程序只使用标准库。
+- 已安装且匹配当前 Skill 运行包时复用；仅未安装且入口未被占用时，从随附 wheel 安装 Python 3.11 持久工具环境。完整锁定依赖嵌入 wheel，不使用业务项目环境、当前 Python 的 FunASR 或 ASR_PYTHON。
+- 已登记工具损坏、不兼容或命令路径冲突时停止，不静默覆盖、升级或切换环境；首次下载前告知用户，遵循平台授权流程。
 - 缺少系统软件或依赖准备失败时停止，不自动安装系统软件，不产生终稿。
 
 ### 6.2 ASR 抽取
@@ -130,7 +132,7 @@ $asr-trans <media-path>
 以下情况必须停止，不得降级生成貌似可用的终稿：
 
 - 输入文件或必要程序不存在。
-- FunASR 不可导入、模型准备失败或没有返回有效结果。
+- 工具安装失败、工具登记/入口损坏、版本/代码/锁定依赖不匹配，或 FunASR 不可导入、模型准备失败、没有返回有效结果。
 - token 与时间戳数量不一致。
 - 全文、句子或 token 不能通过内容一致性检查。
 - 时间范围无效、重叠或越界。
@@ -173,10 +175,10 @@ $asr-trans <media-path>
 
 ### 已知事实
 
-- 开发版已经包含 `SKILL.md`、UI 元数据、schema 参考、两个确定性脚本和离线测试。
+- 开发版包含 `SKILL.md`、UI 元数据、schema 参考、命名运行工具及确定性脚本和离线测试。
 - Skill 名称是 `asr-trans`，当前策略为仅显式调用。
-- 开发版与当前发布目录的运行内容一致；发布目录存在 `.release`。
-- 离线测试覆盖的关键不变量见 `scripts/test_asr_trans.py`。
+- 发布目录保存经用户确认安装的本机快照；开发版变更不自动晋级。当前是否一致须比较内容，不能以开发测试替代发布验收。
+- 离线测试覆盖的关键不变量见 `scripts/test_asr_trans.py` 与 `scripts/test_runtime.py`。
 
 ### 合理推断
 

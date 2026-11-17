@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asr-trans-runtime"
+dynamic = ["version", "dependencies"]
+description = "Local, time-aligned Chinese ASR runtime for the asr-trans Skill"
+requires-python = ">=3.11,<3.12"
+
+[project.scripts]
+asr-trans-runtime = "asr_trans_runtime:main"
+
+[tool.setuptools]
+py-modules = ["asr_trans_runtime", "extract_asr", "transcript_json"]
+package-dir = {"" = "scripts"}
+
+[tool.setuptools.dynamic]
+version = {attr = "asr_trans_runtime.VERSION"}
+dependencies = {file = ["requirements.lock"]}
