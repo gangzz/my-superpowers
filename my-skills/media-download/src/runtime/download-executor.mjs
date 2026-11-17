@@ -7,6 +7,8 @@ import {
 } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 
+import { collectDouyinComments } from '../extractors/douyin-comments.mjs';
+
 import { validateManifest } from '../core/contracts.mjs';
 import { createDownloadPlan } from '../core/download-plan.mjs';
 import { selectAssets } from '../core/selector.mjs';
@@ -33,7 +35,7 @@ function allocateOutputPath(outputDirectory, { site, contentId }) {
     const suffix = sequence === 0 ? '' : `-${sequence}`;
     const finalPath = join(outputDirectory, `${safeSite}-${safeId}${suffix}.mp4`);
     const sourcePath = `${finalPath}.source.json`;
-    const related = [finalPath, sourcePath, `${finalPath}.partial`, `${finalPath}.video.partial`, `${finalPath}.audio.partial`];
+    const related = [finalPath, sourcePath, `${finalPath}.comments.json`, `${finalPath}.comments.json.partial`, `${finalPath}.partial`, `${finalPath}.video.partial`, `${finalPath}.audio.partial`];
     if (related.every((path) => !existsSync(path))) return { finalPath, sourcePath };
   }
   throw codedError('output_name_exhausted', 'Unable to allocate an output filename');
@@ -58,6 +60,7 @@ export function createDownloadExecutor({
   mux = muxMediaFiles,
   digest = sha256File,
   clock = Date.now,
+  collectComments = collectDouyinComments,
   rename = renameSync,
 } = {}) {
   if (!registry || typeof registry.match !== 'function') throw new TypeError('registry is required');
@@ -91,6 +94,11 @@ export function createDownloadExecutor({
         job,
         page,
       }));
+      let comments=null;
+      if(job.commentsLimit){
+        try{comments=await collectComments({page,source:manifest.source,limit:job.commentsLimit,clock})}
+        catch{comments={schemaVersion:1,source:{...manifest.source},capturedAt:new Date(clock()).toISOString(),requestedLimit:job.commentsLimit,sortLabel:'平台默认（未切换排序）',includesReplies:false,status:'unavailable',reason:'comment_collection_failed',items:[]}}
+      }
       const selection = selectAssets(manifest);
       const plan = createDownloadPlan({ manifest, selection });
       const outputRoot = resolve(job.outputDirectory ?? defaultOutputRoot);
@@ -165,16 +173,23 @@ export function createDownloadExecutor({
             transports: transportNames,
           },
         };
+        const commentsPath=comments?`${finalPath}.comments.json`:null;
+        if(commentsPath){
+          const partial=`${commentsPath}.partial`;temporaryPaths.push(partial);
+          writeFileSync(partial,`${JSON.stringify(comments,null,2)}\n`,{flag:'wx',mode:0o600});
+        }
         const sourcePartialPath = `${sourcePath}.partial`;
         temporaryPaths.push(sourcePartialPath);
         writeFileSync(sourcePartialPath, `${JSON.stringify(sourceRecord, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
         rename(finalPartialPath, finalPath);
         finalRenamed = true;
         rename(sourcePartialPath, sourcePath);
+        if(commentsPath)rename(`${commentsPath}.partial`,commentsPath);
         for (const path of temporaryPaths) removeOwnedFile(path);
         committed = true;
         return Object.freeze({
           outputPath: finalPath,
+          ...(comments?{commentsPath,commentsStatus:comments.status,commentsCount:comments.items.length}:{}),
           sourcePath,
           contentId: manifest.source.contentId,
           bytes: media.bytes,
@@ -186,7 +201,7 @@ export function createDownloadExecutor({
         });
       } finally {
         if (!committed) {
-          if (finalRenamed) removeOwnedFile(finalPath);
+          if (finalRenamed){removeOwnedFile(finalPath);removeOwnedFile(sourcePath);if(comments)removeOwnedFile(`${finalPath}.comments.json`);}
           for (const path of [finalPartialPath, ...temporaryPaths]) removeOwnedFile(path);
         }
       }

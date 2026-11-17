@@ -1,6 +1,6 @@
 ---
 name: media-download
-description: 下载用户指定的单个公开媒体作品，通过已注册的站点 Extractor 发现资源、选择可用版本、验证本地文件并保存来源记录。当前生产支持抖音和 B 站公开视频；不用于账号批量采集、信息流、搜索结果采集、直播或直接转写。
+description: 下载用户指定的单个公开媒体作品，通过已注册的站点 Extractor 发现资源、选择可用版本、验证本地文件并保存来源记录。当前生产支持抖音和 B 站公开视频；不用于账号批量采集、信息流、搜索结果采集、直播或直接转写。可选采集同作品最多 40 条公开一级评论。
 ---
 
 # 通用媒体下载
@@ -28,7 +28,7 @@ node scripts/setup.mjs --install
 - Extractor 负责 URL 匹配和站点特有的资源发现。它报告作品的实际媒体类型与候选资源，不写入最终文件。
 - `MediaManifest` 记录已发现的事实和访问要求；用户偏好属于 `SelectionPolicy`，执行状态属于 `DownloadJob`。
 - Selector 与站点无关。内置策略先选择当前播放器使用的音视频合并资源；没有当前标记时回退到最低合并资源，只有合并资源不可用时才允许视频轨和音频轨无损封装。
-- 图文作品交付完整且有序的图片集合，媒体类型由 Extractor 判断。
+- 图文作品的框架契约要求完整且有序的图片集合，实际支持范围以下文为准。
 - Transport 共享执行 `DownloadPlan`；Extractor 声明 `direct-http`、`browser-session` 或 `browser-page` 访问要求。
 - `browser-page` 传输使用页面 `fetch` 取得响应流；`browser-session` 使用当前 Context 的会话材料按 Range 分段请求。两者都按 Node 写流背压写入 `.partial`，不缓存完整媒体正文。
 - 所有需要浏览器的任务共享本机默认 Profile，由唯一 `BrowserHost` 持有 Persistent Context 并串行执行；调用进程提交 `DownloadJob`。
@@ -69,6 +69,14 @@ node scripts/host.mjs
 ```
 
 没有逐任务目录的 Job 使用 Host 默认目录；`node scripts/host.mjs --output '/绝对路径'` 只覆盖这个回退值，也兼容迁移前的旧 Job。成功结果包含视频路径和同名的 `*.mp4.source.json`；来源记录保存规范作品身份、Extractor 已确认的作者与发布内容、可取得的非播放量互动快照，以及 SHA256、大小、时长、尺寸和音轨确认。`downloadedAt` 同时表示本次互动快照时间，不另建采集时间。失败结果保留错误码与错误信息，由调用者决定是否重新提交新 Job。
+
+## 可选评论快照
+
+用户要求评论时，提交 `node scripts/submit.mjs <作品URL> --output <目录> --comments 40`，上限可设为 1–40；不传参数沿用仅下载媒体的行为。评论由同一个 BrowserHost 在已核实作品身份的任务页采集，不另开 Profile，不使用开发探针或签名接口。
+
+抖音：按平台当前默认顺序读取公开一级评论，保留原文与表情，不主动展开回复、不切换排序。最多滚动约 35 秒，去重并保持首次出现顺序；保存为视频同名的 `*.mp4.comments.json`，独立于原有来源记录 v2。记录 `source`、`capturedAt`、`sortLabel`、`requestedLimit`、`includesReplies=false`、`status`、`reason`、`items`。条目仅保存可取得的评论 ID、显示昵称、评论文字、显示时间和点赞文字，不保存头像、主页、IP属地或会话材料。
+
+状态必须如实解释：`limit_reached` 达到请求上限；`exhausted_visible` 当前页面显示已到末尾；`partial` 得到部分但加载停止；`empty` 页面明确显示无评论；`unavailable` 无法取得。B 站暂不支持评论采集，返回 `unsupported_site`。评论不可得不把已通过校验的视频说成失败，结果包含评论路径、状态及实际条数。达到可见末尾不代表取得平台总数；默认排序可能受个性化与平台展示影响，样本不代表全部观众。
 
 ## 人工接管与退出
 

@@ -130,3 +130,9 @@ unavailable
 ## 运行时归属
 
 已安装代码位于 Skill 安装目录。本机状态位于 `~/.codex/state/media-download/`，只包含 `jobs.sqlite`、`profiles/default/` 和 `locks/`。重新安装 Skill 不复制或删除浏览器身份与任务状态；最终下载文件和来源记录属于用户产物，不进入状态目录。
+
+## 可选评论附件
+
+`DownloadJob.commentsLimit` 为可空的 1–40 整数，随 SQLite 持久化；旧 Job 和未显式要求评论的调用均为 null。提交入口接受 `--comments N`。执行器在 Extractor 已核实目标后、传输之前调用独立站点评论采集器，保持唯一 BrowserHost 与任务页面的归属。
+
+抖音采集器只读取目标 `.video_<contentId>` 容器里的公开评论 DOM，按当前默认顺序滚动并去重，不使用网络 Probe、不展开回复。返回独立快照与明确的不完整状态。来源记录 v2 不变；媒体验证通过后，评论快照与来源记录使用临时文件再改名提交。后续附件提交失败时清理本次新建文件，不删除既有媒体。

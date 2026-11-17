@@ -58,6 +58,7 @@ function mapJob(row) {
     url: row.url,
     expectedVideo: parseJson(row.expected_video_json),
     outputDirectory: row.output_directory,
+    commentsLimit: row.comments_limit ?? null,
     status: row.status,
     errorCode: row.error_code,
     errorMessage: row.error_message,
@@ -171,12 +172,14 @@ export function createJobStore({
   `);
   ensureColumn(database, 'download_jobs', 'expected_video_json', 'TEXT');
   ensureColumn(database, 'download_jobs', 'output_directory', 'TEXT');
+  ensureColumn(database, 'download_jobs', 'comments_limit', 'INTEGER');
   ensureColumn(database, 'browser_commands', 'url', 'TEXT');
   ensureColumn(database, 'browser_commands', 'purpose', 'TEXT');
   ensureColumn(database, 'browser_commands', 'result_json', 'TEXT');
 
   return Object.freeze({
-    submitDownload({ url, expectedVideo = null, outputDirectory = null } = {}) {
+    submitDownload({ url, expectedVideo = null, outputDirectory = null, commentsLimit = null } = {}) {
+      if(commentsLimit!==null&&(!Number.isInteger(commentsLimit)||commentsLimit<1||commentsLimit>40))throw new TypeError('commentsLimit must be 1..40');
       const normalizedUrl = normalizeHttpUrl(url);
       const normalizedExpectedVideo = normalizeExpectedVideo(expectedVideo);
       const normalizedOutputDirectory = normalizeOutputDirectory(outputDirectory);
@@ -184,13 +187,14 @@ export function createJobStore({
       const timestamp = nowIso(clock);
       database.prepare(`
         INSERT INTO download_jobs (
-          id, url, expected_video_json, output_directory, status, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, 'queued', ?, ?)
+          id, url, expected_video_json, output_directory, comments_limit, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?)
       `).run(
         id,
         normalizedUrl,
         JSON.stringify(normalizedExpectedVideo),
         normalizedOutputDirectory,
+        commentsLimit,
         timestamp,
         timestamp,
       );

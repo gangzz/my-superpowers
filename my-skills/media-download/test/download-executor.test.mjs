@@ -15,6 +15,15 @@ import test from 'node:test';
 import { createExtractorRegistry } from '../src/core/registry.mjs';
 import { createDownloadExecutor } from '../src/runtime/download-executor.mjs';
 
+test('optional comment failure is recorded separately and does not discard a verified video',async t=>{
+ const outputDirectory=mkdtempSync(join(tmpdir(),'comment-sidecar-'));t.after(()=>rmSync(outputDirectory,{recursive:true,force:true}));
+ const source={site:'douyin',contentId:'123',canonicalUrl:'https://www.douyin.com/video/123'};
+ const registry=createExtractorRegistry([{id:'douyin',browserCapability:'visible-required',matches:()=>true,async extract(){return {schemaVersion:1,source,content:{kind:'video'},assets:[{id:'a',kind:'video',isCurrent:true,tracks:{video:true,audio:true},access:{mode:'browser-page',url:'https://media.example/a'}}]}}}]);
+ const executor=createDownloadExecutor({registry,outputDirectory,browserPageTransport:{async transfer({partialPath}){writeFileSync(partialPath,'media')}},inspect:async()=>({bytes:5,duration:1,video:{width:10,height:10},audio:{}}),digest:async()=>'hash',collectComments:async()=>{throw Error('private network details')}});
+ const result=await executor.executeDownload({job:{url:source.canonicalUrl,commentsLimit:40},page:{}});
+ assert.equal(result.commentsStatus,'unavailable');assert.equal(result.commentsCount,0);assert.equal(existsSync(result.outputPath),true);assert.equal(JSON.parse(readFileSync(result.commentsPath,'utf8')).source.contentId,'123');assert.equal(JSON.parse(readFileSync(result.sourcePath,'utf8')).schemaVersion,2);
+});
+
 test('执行器只在媒体检查通过后提交正式文件和无敏感 URL 的来源记录', async (t) => {
   const outputDirectory = mkdtempSync(join(tmpdir(), 'download-executor-'));
   const jobOutputDirectory = join(outputDirectory, 'per-job-output');

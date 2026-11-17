@@ -100,6 +100,14 @@ test('期望分辨率和逐任务输出目录作为可选 Job 输入持久化', 
   );
 });
 
+test('评论上限随 Job 持久化，旧调用不采集评论', t=>{
+ const paths=tempRuntime(t),store=createJobStore({databasePath:paths.jobsDatabase});t.after(()=>store.close());
+ assert.equal(store.submitDownload({url:'https://example.com/plain'}).commentsLimit,null);
+ const job=store.submitDownload({url:'https://example.com/comments',commentsLimit:40});
+ assert.equal(store.getDownload(job.id).commentsLimit,40);
+ for(const limit of [0,41,1.5,'40'])assert.throws(()=>store.submitDownload({url:job.url,commentsLimit:limit}),/1..40/);
+});
+
 test('既有 SQLite 队列会补齐清晰度和逐任务输出目录字段', (t) => {
   const paths = tempRuntime(t);
   const legacy = new DatabaseSync(paths.jobsDatabase);
