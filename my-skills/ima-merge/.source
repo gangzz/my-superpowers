@@ -1,4 +1,4 @@
 source=original
 commit=none
-summary=ima MCP 优先统一入口；本机 WorkBuddy 加密授权桥接，按确切能力缺口使用现有 ima-skill
+summary=本机 ima 统一入口 0.2.0，整合官方 MCP 与 ima-skill 1.1.10，补齐上传替换、改名与上游跟踪
 targets=codex

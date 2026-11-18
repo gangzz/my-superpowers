@@ -53,7 +53,7 @@ function client(dir){
   let raw;try{raw=cp.execFileSync('curl',['-q','--config','-'],{input:config,encoding:'utf8',maxBuffer:32*1024*1024,stdio:['pipe','pipe','pipe']});}catch{fail('NETWORK_OR_RESPONSE_SIZE_ERROR');}
   const out=parseHttp(raw,id);if(out.headers['mcp-session-id'])session=out.headers['mcp-session-id'];return out.result;
  }
- const init=rpc('initialize',{protocolVersion:protocol,capabilities:{},clientInfo:{name:'ima-merge-local',version:'0.1.0'}});
+ const init=rpc('initialize',{protocolVersion:protocol,capabilities:{},clientInfo:{name:'ima-merge-local',version:require('../meta.json').version}});
  if(!init?.protocolVersion)fail('INITIALIZE_FAILED');protocol=init.protocolVersion;rpc('notifications/initialized',{},true);
  return rpc;
 }
@@ -70,5 +70,5 @@ function main(){
  if(result?.isError)fail('MCP_TOOL_ERROR');
  console.log(JSON.stringify(result,null,2));
 }
-module.exports={parseHttp,tokenFrom,READ,WRITE};
+module.exports={parseHttp,tokenFrom,READ,WRITE,client,discover};
 if(require.main===module){try{main();}catch(e){console.error(JSON.stringify({error:e.safeCode||'LOCAL_CONFIG_DECRYPT_OR_INPUT_ERROR',hint:'Do not print credential files. Check WorkBuddy ima connection; no automatic retry or OpenAPI fallback.'}));process.exitCode=1;}}

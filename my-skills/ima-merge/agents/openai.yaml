@@ -1,5 +1,5 @@
 interface:
   display_name: "IMA Merge"
-  short_description: "优先官方 MCP 读取 ima 知识库，按能力缺口补充个人笔记操作"
+  short_description: "统一 ima MCP、OpenAPI、文件上传改名与个人笔记，跟踪官方上游更新"
 policy:
   allow_implicit_invocation: false
