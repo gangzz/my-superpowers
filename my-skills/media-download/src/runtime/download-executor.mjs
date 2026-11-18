@@ -13,6 +13,7 @@ import { validateManifest } from '../core/contracts.mjs';
 import { createDownloadPlan } from '../core/download-plan.mjs';
 import { selectAssets } from '../core/selector.mjs';
 import { verifyExpectedVideo } from '../core/video-verification.mjs';
+import { NodeHttpTransport } from '../transports/node-http.mjs';
 import { BrowserPageTransport } from '../transports/browser-page.mjs';
 import { BrowserSessionTransport } from '../transports/browser-session.mjs';
 import { inspectMediaFile, muxMediaFiles, sha256File } from './media-files.mjs';
@@ -55,6 +56,7 @@ export function createDownloadExecutor({
   registry,
   outputDirectory,
   browserPageTransport = new BrowserPageTransport(),
+  nodeHttpTransport = new NodeHttpTransport(),
   browserSessionTransport = new BrowserSessionTransport(),
   inspect = inspectMediaFile,
   mux = muxMediaFiles,
@@ -68,6 +70,9 @@ export function createDownloadExecutor({
   const defaultOutputRoot = resolve(outputDirectory);
 
   async function transferAsset({ transfer, page, context, partialPath }) {
+    if (transfer.transport === 'NodeHttpTransport') {
+      return nodeHttpTransport.transfer({ access: transfer.access, partialPath });
+    }
     if (transfer.transport === 'BrowserPageTransport') {
       return browserPageTransport.transfer({ page, access: transfer.access, partialPath });
     }

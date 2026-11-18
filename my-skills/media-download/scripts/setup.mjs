@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url';
 const skillRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mode = process.argv[2] ?? '--check';
 
-if (!['--check', '--install'].includes(mode) || process.argv.length > 3) {
-  console.error('Usage: node scripts/setup.mjs [--check|--install]');
+if (!['--check', '--check-x', '--install'].includes(mode) || process.argv.length > 3) {
+  console.error('Usage: node scripts/setup.mjs [--check|--check-x|--install]');
   process.exit(2);
 }
 
@@ -42,6 +42,7 @@ function systemIssues() {
   if (!commandAvailable('npm')) issues.push('找不到 npm');
   if (!commandAvailable('ffmpeg', ['-version'])) issues.push('找不到 ffmpeg');
   if (!commandAvailable('ffprobe', ['-version'])) issues.push('找不到 ffprobe');
+  if (mode === '--check-x' && !commandAvailable('yt-dlp')) issues.push('X 下载需要 PATH 中可用的 yt-dlp；请单独安装或更新后重试');
   return issues;
 }
 

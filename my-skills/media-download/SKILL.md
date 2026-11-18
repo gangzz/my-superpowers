@@ -1,6 +1,6 @@
 ---
 name: media-download
-description: 下载用户指定的单个公开媒体作品，通过已注册的站点 Extractor 发现资源、选择可用版本、验证本地文件并保存来源记录。当前生产支持抖音和 B 站公开视频；不用于账号批量采集、信息流、搜索结果采集、直播或直接转写。可选采集同作品最多 40 条公开一级评论。
+description: 下载用户指定的单个公开媒体作品，通过已注册的站点 Extractor 发现资源、选择可用版本、验证本地文件并保存来源记录。当前生产支持抖音、B 站和 X（Twitter）公开视频；不用于账号批量采集、信息流、搜索结果采集、直播或直接转写。可选采集同作品最多 40 条公开一级评论。
 ---
 
 # 通用媒体下载
@@ -44,18 +44,21 @@ node scripts/setup.mjs --install
 
 当前生产 Extractor 支持以下入口：
 
+- X（Twitter）：`x.com/<作者>/status/<ID>`、`twitter.com` 等价链接及 `i/web/status/<ID>`。通过本机 `yt-dlp` 解析公开单视频推文，生成 Manifest，再由共享 HTTP Range 传输和 Verifier 交付 MP4。运行前额外执行 `node scripts/setup.mjs --check-x`；缺少 yt-dlp 时单独准备该工具，setup 不安装它。无需浏览器或登录 Profile，忽略 yt-dlp 用户配置；暂不支持需登录的作品、图文、多视频推文、直播、HLS-only 和评论。详细实现与验证边界见 [docs/extractors/x.md](docs/extractors/x.md)。
+
 - 抖音：单个公开视频长链接、带 `modal_id` 的作品链接，以及最终能跳转到单作品页的抖音短链。Extractor 按作品 ID 定位目标 `RENDER_DATA` 对象，直接从该对象生成资源候选；正式下载不监听页面网络。
 - B 站：`www.bilibili.com/video/<BV号>/` 和等价的 `m.bilibili.com` 单个公开视频链接。Extractor 优先使用页面自身发出的目标 `playurl` 响应；共享 Context 后续页面不再发出该响应时，通过页面会话显式调用公开 `view` 与 `player/playurl` 接口，并再次校验 BV 号、分 P CID 和 DASH 轨道。它不导入或接收开发期 NetworkProbe。
 
-两站资源都使用当前 Context 会话材料的 `browser-session` Range 流传输。B 站 DASH 轨道按主地址、备用 CDN 顺序回退，选中的视频轨和音频轨由共享后处理器无损封装为 MP4。
+抖音和 B 站资源都使用当前 Context 会话材料的 `browser-session` Range 流传输。B 站 DASH 轨道按主地址、备用 CDN 顺序回退，选中的视频轨和音频轨由共享后处理器无损封装为 MP4。
 
-独立音频、图文、其他站点以及 `direct-http` 目前只有框架契约，没有可发布的端到端实现；不要把它们报告为已支持。
+独立音频、图文及其他站点目前只有框架契约，没有可发布的端到端实现；不要把它们报告为已支持。
 
 使用默认保存目录时只需提交 URL：
 
 ```sh
 node scripts/submit.mjs 'https://www.douyin.com/jingxuan?modal_id=作品ID'
 node scripts/submit.mjs 'https://www.bilibili.com/video/BV号/'
+node scripts/submit.mjs 'https://x.com/作者/status/推文ID'
 ```
 
 需要指定本次任务的保存位置时，在提交阶段传入 `--output`；路径会解析为绝对路径并随 `DownloadJob` 持久化，因此同一个 Host 可以连续把不同任务保存到不同目录：
@@ -76,13 +79,17 @@ node scripts/host.mjs
 
 用户要求评论时，提交 `node scripts/submit.mjs <作品URL> --output <目录> --comments 40`，上限可设为 1–40；不传参数沿用仅下载媒体的行为。评论由同一个 BrowserHost 在已核实作品身份的任务页采集，不另开 Profile，不使用开发探针或签名接口。
 
-抖音：按平台当前默认顺序读取公开一级评论，保留原文与表情，不主动展开回复、不切换排序。最多滚动约 35 秒，去重并保持首次出现顺序；保存为视频同名的 `*.mp4.comments.json`，独立于原有来源记录 v2。记录 `source`、`capturedAt`、`sortLabel`、`requestedLimit`、`includesReplies=false`、`status`、`reason`、`items`。条目仅保存可取得的评论 ID、显示昵称、评论文字、显示时间和点赞文字，不保存头像、主页、IP属地或会话材料。
+抖音评论采集先通过页面原生控件关闭“登录后免费畅享高清视频”的可关闭提示、“我知道了”新手引导和“继续看评论”提示，再读取可见评论区。按平台当前默认顺序读取公开一级评论，保留原文与表情，不主动展开回复、不切换排序。最多滚动约 35 秒，去重并保持首次出现顺序；保存为视频同名的 `*.mp4.comments.json`，独立于原有来源记录 v2。记录 `source`、`capturedAt`、`sortLabel`、`requestedLimit`、`includesReplies=false`、`status`、`reason`、`items`。条目仅保存可取得的评论 ID、显示昵称、评论文字、显示时间和点赞文字，不保存头像、主页、IP属地或会话材料。
 
-状态必须如实解释：`limit_reached` 达到请求上限；`exhausted_visible` 当前页面显示已到末尾；`partial` 得到部分但加载停止；`empty` 页面明确显示无评论；`unavailable` 无法取得。B 站暂不支持评论采集，返回 `unsupported_site`。评论不可得不把已通过校验的视频说成失败，结果包含评论路径、状态及实际条数。达到可见末尾不代表取得平台总数；默认排序可能受个性化与平台展示影响，样本不代表全部观众。
+`--comments 40` 表示请求上限为40条。实际数量受当前可见一级评论、页面加载及登录条件限制。列表显示“登录后可看更多”等明确访问提示时，已有样本返回 `partial` / `login_required`，无样本返回 `unavailable` / `login_required`，保留实际条数与请求上限，由调用者决定后续访问方式。
+
+状态必须如实解释：`limit_reached` 达到请求上限；`exhausted_visible` 当前页面显示已到末尾；`partial` 得到部分但加载停止；`empty` 页面明确显示无评论；`unavailable` 无法取得。B 站和 X 暂不支持评论采集，返回 `unsupported_site`。评论不可得不把已通过校验的视频说成失败，结果包含评论路径、状态及实际条数。达到可见末尾不代表取得平台总数；默认排序可能受个性化与平台展示影响，样本不代表全部观众。
 
 ## 人工接管与退出
 
 `captcha` / `login_required` 是站点访问状态，和运行命令的权限审批分开。收到这些错误时，先核对可见页面；隐藏挂件或文案中出现“验证码”不足以证明需要人工验证。不要绕过真实验证码。
+
+以下人工接管适用于使用共享浏览器的 Extractor。X 的公开解析失败返回 `x_extraction_failed`，先检查作品可用性、网络和 yt-dlp 版本；当前 X 适配器不导入登录态，也不通过共享浏览器恢复。
 
 确认需要用户操作时：
 

@@ -1,4 +1,4 @@
 source=original
 commit=none
-summary=原创通用媒体下载 Skill；抖音默认Headless，B站保持可见，人工接管可见；支持逐任务目录、DASH、来源记录与可选评论快照
+summary=新增 X/Twitter 公开单视频解析与 direct-http 流传输；原创通用媒体下载 Skill；抖音默认Headless，B站保持可见，人工接管可见；支持逐任务目录、DASH、来源记录、评论提示处理及登录边界报告
 targets=codex

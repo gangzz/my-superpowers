@@ -78,7 +78,7 @@ Profile 文件锁覆盖 BrowserHost 持有 Persistent Context 的完整周期。
 
 Extractor 只声明访问要求，由共享规划器选择匹配的 Transport 实现。资源发现过程即使使用浏览器，最终选中的资源仍可能通过普通 HTTP 传输。
 
-当前生产运行时只实现 `browser-session` 和 `browser-page`；`direct-http` 仍是扩展契约。音频与图文也只有 Manifest 和选择契约，尚未形成端到端交付能力。
+当前生产运行时实现 `browser-session`、`browser-page` 和 `direct-http`。X Extractor 通过 yt-dlp 发现公开 MP4，NodeHttpTransport 复用有界 Range 流实现并提供空 Cookie 源，无需浏览器。音频与图文也只有 Manifest 和选择契约，尚未形成端到端交付能力。
 
 ## 媒体来源记录
 
